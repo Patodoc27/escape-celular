@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESCAPE CELULAR — Juego de Organelas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+</head>
+<body>
+<audio id="bgm" src="assets/Escape_Celular.mp3" loop preload="auto"></audio>
+<button id="btn-mute" class="mute-btn" title="Silenciar música">🔊</button>
+<div id="app">
+
+  <!-- ============ PORTADA (primera pantalla) ============ -->
+  <section id="screen-cover" class="screen screen-cover active">
+    <img class="cover-img" src="assets/portada.jpg" alt="Escape Celular">
+    <p class="cover-hint">Tocá la pantalla o apretá una tecla para comenzar</p>
+  </section>
+
+  <!-- ============ INSTRUCCIONES ============ -->
+  <section id="screen-rules" class="screen">
+    <div class="rules-layout">
+      <img class="mascot" src="assets/mascota.png" alt="Guía del Escape Celular">
+      <div class="card card-hero rules-hero glow-frame">
+        <img class="title-logo" src="assets/logo.png" alt="Escape Celular">
+        <p class="subtitle">Atrapa estructuras, construye células y encuentra la salida</p>
+      <div class="rules-grid">
+        <div class="rule-tile"><div class="rule-icon">🧺</div><h3>Mové la canasta</h3><p>Con ◀ ▶ atrapá las pelotitas. ¡El reloj arranca al moverte!</p></div>
+        <div class="rule-tile"><div class="rule-icon">🎯</div><h3>Leé el objetivo</h3><p>El cartel dice el TIPO a atrapar. Vos deducís cuáles son. 5 niveles × 45 s.</p></div>
+        <div class="rule-tile"><div class="rule-icon">❌</div><h3>Ojo con los errores</h3><p>Si atrapás una que no es, perdés 3 de tu canasta.</p></div>
+        <div class="rule-tile"><div class="rule-icon">🔬</div><h3>Armá y emparejá</h3><p>Construí las 2 células y uní cada estructura con su función.</p></div>
+        <div class="rule-tile"><div class="rule-icon">🔑</div><h3>Ganá llaves</h3><p>Jugá bien en cada fase y ganás hasta 7 llaves.</p></div>
+        <div class="rule-tile"><div class="rule-icon">🚪</div><h3>15 puertas, 1 salida</h3><p>Cada llave abre una puerta. ¡Encontrá la salida y llevate tu PDF!</p></div>
+      </div>
+      <button id="btn-to-register" class="btn btn-glow big">¡Entendido! ➜</button>
+      <p class="credits">Diseño: <b>Patricia Inés Castro</b> · Desarrollo asistido: Devin AI</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ REGISTRO ============ -->
+  <section id="screen-register" class="screen">
+    <div class="card card-hero">
+      <h1 class="game-title">ESCAPE CELULAR</h1>
+      <p class="subtitle">Completá tus datos para empezar</p>
+
+      <div class="register-grid">
+        <div>
+          <div class="form-row">
+            <label>Nombre</label>
+            <input id="inp-nombre" type="text" placeholder="Tu nombre" autocomplete="off">
+          </div>
+          <div class="form-row">
+            <label>Apellido</label>
+            <input id="inp-apellido" type="text" placeholder="Tu apellido" autocomplete="off">
+          </div>
+          <div class="form-row">
+            <label>Sección</label>
+            <div class="section-picker">
+              <button type="button" class="sec-btn" data-sec="A">Sección A</button>
+              <button type="button" class="sec-btn" data-sec="B">Sección B</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Elige tu avatar</label>
+          <div id="avatar-grid" class="avatar-grid"></div>
+        </div>
+      </div>
+
+      <p id="register-error" class="error-text"></p>
+      <button id="btn-start" class="btn btn-glow big">🎮 ¡A JUGAR!</button>
+    </div>
+  </section>
+
+  <!-- ============ CUENTA REGRESIVA ============ -->
+  <section id="screen-countdown" class="screen">
+    <div class="countdown-wrap">
+      <img id="countdown-avatar" class="countdown-avatar" src="" alt="">
+      <p id="countdown-question" class="countdown-question">¿Lista/o? ¡Mirá el objetivo de cada nivel!</p>
+      <div id="countdown-num" class="countdown-num">3</div>
+    </div>
+  </section>
+
+  <!-- ============ ATRAPAR ============ -->
+  <section id="screen-catch" class="screen">
+    <div class="hud">
+      <span id="hud-level" class="hud-chip">Nivel 1 de 5</span>
+      <span id="hud-pips" class="hud-chip hud-pips"></span>
+      <span id="hud-timer" class="hud-chip">⏱ 45</span>
+      <span id="hud-count" class="hud-chip">🧺 0</span>
+      <span id="hud-keys" class="hud-chip">🔑 0</span>
+    </div>
+    <div class="timebar"><div id="timebar-fill"></div></div>
+    <div id="field">
+      <div id="level-banner" class="level-banner hidden"></div>
+      <div id="penalty" class="penalty hidden">-3</div>
+      <div id="player"><img src="assets/catcher.png" alt="Estudiante con canasta" draggable="false"></div>
+    </div>
+    <div class="catch-controls">
+      <button id="btn-left" class="btn ctrl">◀</button>
+      <div class="ctrl-hint" id="catch-goal">Atrapá: <b>—</b></div>
+      <button id="btn-right" class="btn ctrl">▶</button>
+    </div>
+    <div id="level-result" class="overlay hidden">
+      <div class="overlay-card">
+        <h2 id="lr-title">¡Niveles completados!</h2>
+        <p id="lr-text" class="overlay-text"></p>
+        <button id="btn-lr-continue" class="btn btn-primary big">Continuar ➜</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ARMAR CÉLULAS ============ -->
+  <section id="screen-build" class="screen">
+    <div class="card wide">
+      <h2>🔬 Construye las células</h2>
+      <p class="subtitle">Toca una organela recolectada y luego toca un círculo dentro de cada célula para colocarla. Solo son válidas las células con las estructuras más importantes.</p>
+      <div class="match-score">🔑 Llaves: <b class="js-keys">0</b></div>
+      <div class="cells-wrap">
+        <div class="cell-panel">
+          <h3>Célula eucariota animal</h3>
+          <div id="cell-animal" class="cell cell-animal"></div>
+          <p id="msg-animal" class="cell-msg"></p>
+        </div>
+        <div class="cell-panel">
+          <h3>Célula eucariota vegetal</h3>
+          <div id="cell-plant" class="cell cell-plant"></div>
+          <p id="msg-plant" class="cell-msg"></p>
+        </div>
+      </div>
+      <h3 class="tray-title">🧺 Tus organelas recolectadas</h3>
+      <div id="tray" class="tray"></div>
+      <p id="build-keys" class="keys-msg"></p>
+      <div class="btn-row">
+        <button id="btn-collect-more" class="btn btn-warn hidden">🧺 Recolectar más organelas</button>
+        <button id="btn-verify-cells" class="btn btn-primary">🔍 Controlar</button>
+        <button id="btn-to-match" class="btn btn-primary">Continuar ➜</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ EMPAREJAR ============ -->
+  <section id="screen-match" class="screen">
+    <div class="card wide">
+      <h2>🧩 Empareja estructura y función</h2>
+      <p class="subtitle">Tocá una estructura y luego su función — cada pareja se marca con un color. ¡Ojo! Hay funciones <b>distractoras</b> que no corresponden a ninguna estructura del bloque. Cada <b>bloque</b> completado con 0 o 1 error suma <b>1 llave</b> (hasta 3 en total).</p>
+      <div class="match-score">🔑 Llaves: <b class="js-keys">0</b> · Bloque <b id="match-block">1</b> de 3 · Errores: <b id="match-errors">0</b> · Llaves ganadas: <b id="match-keys">0</b></div>
+      <div class="match-wrap">
+        <div id="match-left" class="match-col"></div>
+        <div id="match-right" class="match-col"></div>
+      </div>
+      <div class="btn-row">
+        <button id="btn-next-block" class="btn btn-primary big hidden">Siguiente bloque ➜</button>
+        <button id="btn-to-doors" class="btn btn-primary big hidden">🚪 Ir a las puertas</button>
+        <button id="btn-retry-match" class="btn btn-warn hidden">🔁 Reintentar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PUERTAS ============ -->
+  <section id="screen-doors" class="screen">
+    <div class="card wide">
+      <h2>🚪 Encuentra la salida</h2>
+      <p class="subtitle">Solo una de las 15 puertas es la salida. Cada llave abre una puerta. La salida no cambia de lugar y las puertas abiertas quedan abiertas.</p>
+      <div class="match-score">🔑 Llaves: <b id="keys-count">0</b></div>
+      <div id="keys-icons" class="keys-icons"></div>
+      <div id="doors-grid" class="doors-grid"></div>
+      <p id="doors-hint" class="keys-msg"></p>
+      <div class="btn-row">
+        <button id="btn-back-keys" class="btn btn-warn hidden">🔁 Volver a jugar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FINAL ============ -->
+  <section id="screen-final" class="screen">
+    <div class="card">
+      <h2>🎉 ¡Encontraste la salida!</h2>
+      <div id="final-summary" class="final-summary"></div>
+      <button id="btn-pdf" class="btn btn-glow big">📄 Descargar PDF con mis resultados</button>
+      <button id="btn-restart" class="btn btn-ghost">Jugar de nuevo</button>
+    </div>
+  </section>
+
+  <!-- reporte imprimible (respaldo del PDF) -->
+  <div id="print-report" class="print-only"></div>
+
+</div>
+<script src="game.js"></script>
+</body>
+</html>
