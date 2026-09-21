@@ -26,9 +26,9 @@ const CAT_KEYS = Object.keys(CATEGORIES);
 /* colores aleatorios de las pelotitas: el color NO identifica la estructura,
    así el estudiante tiene que leer el nombre */
 const BALL_COLORS=['#ff3d5e','#ff9500','#ffd000','#7cfc00','#00c853','#00e5d4','#00b0ff','#2979ff','#7c4dff','#e040fb','#ff2d95','#a1662f'];
-/* umbrales de llaves por puntaje al atrapar: 70+ → 3 llaves, 45–69 → 2,
-   20–44 → 1, menos → ninguna (~55 pelotitas del objetivo por nivel) */
-const KEYS_3=70, KEYS_2=45, KEYS_1=20;
+/* umbrales de llaves por puntaje al atrapar: 55+ → 2 llaves,
+   25–54 → 1, menos → ninguna (máx 6 llaves por partida en total) */
+const KEYS_2=55, KEYS_1=25;
 
 const STRUCTURES = [
   { name:'Membrana plasmática',             fn:'Controla qué sustancias entran y salen de la célula' },
@@ -123,7 +123,9 @@ const state = {
   cellsCompleted:0, animalOk:false, plantOk:false,
   matchRoundErrors:0, matchErrorsTotal:0, matchRounds:0,
   keys:0, exitDoor:null, doorsOpened:[], doorsTried:0, keysEarned:0, doorsRound:0,
-  buildHadError:false, cellKeyAwarded:false, cellStage:'animal',
+  cellErr:{animal:0,plant:0}, cellKey:{animal:false,plant:false},
+  countedWrong:{animal:{},plant:{}}, extraFor:'animal',
+  keysBy:{catch:0,roulette:0}, rouCorrectTotal:0, cellStage:'animal',
   startTime:null, endTime:null,
 };
 
@@ -420,7 +422,8 @@ function catchPop(x,y){
 function loseThree(){
   state.decoyErrors++;
   state.score=Math.max(0, state.score-3);   // resta puntos; lo recolectado no se pierde
-  if(extraRound) state.buildHadError=true;  // errores en la ronda extra arruinan la llave de la fase
+  // errores en la ronda extra cuentan para la llave de la célula que se estaba armando
+  if(extraRound) state.cellErr[state.extraFor]++;
   updateHudCount();
   sfx('wrong');
   const p=$('#penalty');
@@ -444,10 +447,9 @@ function endCatchLevel(){
 
 function awardCatchKeys(){
   let earned=0;
-  if(state.score>=KEYS_3) earned=3;
-  else if(state.score>=KEYS_2) earned=2;
+  if(state.score>=KEYS_2) earned=2;
   else if(state.score>=KEYS_1) earned=1;
-  state.keys+=earned; state.keysEarned+=earned;
+  state.keys+=earned; state.keysEarned+=earned; state.keysBy.catch+=earned;
   updateHudCount();
   if(earned>0) sfx('key');
   $('#lr-title').textContent='¡Terminaron los 5 niveles!';
@@ -522,6 +524,7 @@ function onBoxClick(kind, idx){
   if(placed){
     // quitar: la ficha vuelve a la canasta (las organelas, al inventario)
     delete pl[idx];
+    Object.keys(state.countedWrong[kind]).forEach(k=>{ if(k.startsWith(idx+'=')) delete state.countedWrong[kind][k]; });
     if(ORG_BY_ID[placed]) state.inventory[placed]=(state.inventory[placed]||0)+1;
     state.animalOk=state.plantOk=false;
     renderDiagram(); renderTray(); updateCollectMoreBtn(); updateBuildButtons(); return;
@@ -558,6 +561,10 @@ function verifyCells(){
     }else if(p!==b.id){
       if(!wrong.includes(p)) wrong.push(p);
       dom()[i].classList.add('bad');
+      // cada rótulo mal colocado cuenta 1 error para la llave de esta célula;
+      // no se vuelve a contar si se aprieta Controlar otra vez sin moverlo
+      const sig=i+'='+p;
+      if(!state.countedWrong[kind][sig]){ state.countedWrong[kind][sig]=1; state.cellErr[kind]++; }
     }
   });
   const ok = missing.length===0 && wrong.length===0;
@@ -565,7 +572,6 @@ function verifyCells(){
     msgEl.textContent='✅ ¡Célula completa y correcta!';
     msgEl.className='cell-msg ok';
   }else{
-    state.buildHadError=true;
     let txt=[];
     if(missing.length) txt.push('Falta: '+missing.map(orgName).join(', '));
     if(wrong.length)  txt.push('No corresponde ahí: '+wrong.map(orgName).join(', '));
@@ -574,26 +580,37 @@ function verifyCells(){
   }
   if(kind==='animal') state.animalOk=ok; else state.plantOk=ok;
   state.cellsCompleted=(state.animalOk?1:0)+(state.plantOk?1:0);
-  // llave extra si armó ambas células sin equivocarse
-  if(state.animalOk && state.plantOk && !state.buildHadError && !state.cellKeyAwarded){
-    state.cellKeyAwarded=true; state.keys+=1; state.keysEarned+=1;
-    updateHudCount(); sfx('key');
-    $('#build-keys').textContent='🔑 ¡Células perfectas! Ganaste 1 llave extra.';
-  }else{
-    $('#build-keys').textContent='';
+  // 1 llave por célula completa con 0-1 errores
+  let keyMsg='';
+  if(ok && !state.cellKey[kind]){
+    if(state.cellErr[kind]<=1){
+      state.cellKey[kind]=true; state.keys+=1; state.keysEarned+=1;
+      updateHudCount(); sfx('key');
+      keyMsg=' 🔑 ¡Ganaste la llave de esta célula!';
+    }else{
+      keyMsg=` (sin llave: ${state.cellErr[kind]} errores en esta célula)`;
+    }
   }
+  if(ok && keyMsg) msgEl.textContent+=keyMsg;
+  $('#build-keys').textContent=`🔑 Llaves de células: Animal ${state.cellKey.animal?'✔':'—'} · Vegetal ${state.cellKey.plant?'✔':'—'}`;
   updateBuildButtons();
 }
 
 /* re-verifica ambas células en silencio (para el botón Continuar) */
 function verifyAllCells(){
+  let awarded=false;
   ['animal','plant'].forEach(kind=>{
     const boxes=CELL_BOXES[kind], pl=state.placements[kind];
     let ok=true;
     boxes.forEach((b,i)=>{ const p=pl[i]; if(!p || p!==b.id) ok=false; });
     if(kind==='animal') state.animalOk=ok; else state.plantOk=ok;
+    // si quedó bien armada y nunca se verificó, la llave se gana igual
+    if(ok && !state.cellKey[kind] && state.cellErr[kind]<=1){
+      state.cellKey[kind]=true; state.keys+=1; state.keysEarned+=1; awarded=true;
+    }
   });
   state.cellsCompleted=(state.animalOk?1:0)+(state.plantOk?1:0);
+  if(awarded){ updateHudCount(); sfx('key'); }
 }
 
 /* ================= RULETA DE FUNCIONES ================= */
@@ -723,7 +740,8 @@ function endRoulette(){
   const correctas = ROULETTE_SPINS - matchErrors;
   const earned = matchErrors===0 ? 2 : (matchErrors<=2 ? 1 : 0);
   matchKeysEarned = earned;
-  state.keys += earned; state.keysEarned += earned;
+  state.keys += earned; state.keysEarned += earned; state.keysBy.roulette+=earned;
+  state.rouCorrectTotal += correctas;
   updateHudCount(); if(earned>0) sfx('key');
   $('#match-keys').textContent = earned;
   const doorsBtn=$('#btn-to-doors');
@@ -833,17 +851,17 @@ function finishGame(){
   state.endTime=Date.now();
   const secs=Math.round((state.endTime-state.startTime)/1000);
   const mm=Math.floor(secs/60), ss=secs%60;
-  const cellsDesc=[state.animalOk?'animal ✔':'animal ✘', state.plantOk?'vegetal ✔':'vegetal ✘'].join(' · ');
+  const cellDesc=k=>`${state.cellErr[k]} error${state.cellErr[k]===1?'':'es'} → ${state.cellKey[k]?'1 llave 🔑':'sin llave'}`;
   $('#final-summary').innerHTML=`
     <img src="${state.avatar.img}" alt="${state.avatar.label}">
     <h3>${state.nombre} ${state.apellido} — Sección ${state.seccion}</h3>
     <table>
-      <tr><td>Avatar</td><td>${state.avatar.label}</td></tr>
-      <tr><td>Pelotitas correctas atrapadas</td><td>${state.totalCaught}</td></tr>
-      <tr><td>Errores (pelotitas incorrectas)</td><td>${state.decoyErrors}</td></tr>
-      <tr><td>Células completas</td><td>${state.cellsCompleted} de 2 (${cellsDesc})</td></tr>
-      <tr><td>Errores en la ruleta de funciones</td><td>${state.matchErrorsTotal}</td></tr>
-      <tr><td>Llaves obtenidas</td><td>${state.keysEarned}</td></tr>
+      <tr><td>Partidas jugadas</td><td>${state.doorsRound}</td></tr>
+      <tr><td>Canastas</td><td>${state.totalCaught} aciertos · ${state.decoyErrors} errores · puntaje ${state.score} → ${state.keysBy.catch} llave${state.keysBy.catch===1?'':'s'} 🔑</td></tr>
+      <tr><td>Célula animal</td><td>${state.animalOk?'correcta':'incompleta'} · ${cellDesc('animal')}</td></tr>
+      <tr><td>Célula vegetal</td><td>${state.plantOk?'correcta':'incompleta'} · ${cellDesc('plant')}</td></tr>
+      <tr><td>Ruleta</td><td>${state.rouCorrectTotal} aciertos · ${state.matchErrorsTotal} errores → ${state.keysBy.roulette} llave${state.keysBy.roulette===1?'':'s'} 🔑</td></tr>
+      <tr><td>Llaves totales</td><td>${state.keysEarned}</td></tr>
       <tr><td>Puertas abiertas</td><td>${state.doorsTried}</td></tr>
       <tr><td>Tiempo total</td><td>${mm}m ${ss}s</td></tr>
     </table>`;
@@ -853,21 +871,19 @@ function finishGame(){
 function generatePDF(){
   const secs=state.endTime?Math.round((state.endTime-state.startTime)/1000):0;
   const mm=Math.floor(secs/60), ss=secs%60;
+  const cellRow=k=>`${(k==='animal'?state.animalOk:state.plantOk)?'correcta':'incompleta'} · ${state.cellErr[k]} error${state.cellErr[k]===1?'':'es'} → ${state.cellKey[k]?1:0} llave`;
   const rows=[
     ['Nombre', `${state.nombre} ${state.apellido}`],
     ['Sección', state.seccion],
-    ['Avatar elegido', state.avatar.label],
-    ['Organelas atrapadas', String(state.totalCaught)],
-    ['Errores al atrapar (pelotitas incorrectas)', String(state.decoyErrors)],
-    ['Célula animal completa', state.animalOk?'Sí':'No'],
-    ['Célula vegetal completa', state.plantOk?'Sí':'No'],
-    ['Células completas', `${state.cellsCompleted} de 2`],
-    ['Errores en la ruleta de funciones', String(state.matchErrorsTotal)],
-    ['Rondas de ruleta jugadas', String(state.matchRounds)],
-    ['Llaves obtenidas', String(state.keysEarned)],
-    ['Puertas abiertas hasta encontrar la salida', String(state.doorsTried)],
-    ['Tiempo total de juego', `${mm}m ${ss}s`],
     ['Fecha', new Date().toLocaleString('es')],
+    ['Partidas jugadas', String(state.doorsRound)],
+    ['Canastas', `${state.totalCaught} aciertos · ${state.decoyErrors} errores · puntaje ${state.score} → ${state.keysBy.catch} llave(s)`],
+    ['Célula animal', cellRow('animal')],
+    ['Célula vegetal', cellRow('plant')],
+    ['Ruleta', `${state.rouCorrectTotal} aciertos de ${state.matchRounds*ROULETTE_SPINS} · ${state.matchErrorsTotal} errores → ${state.keysBy.roulette} llave(s)`],
+    ['Llaves totales', String(state.keysEarned)],
+    ['Puertas abiertas', String(state.doorsTried)],
+    ['Tiempo total', `${mm}m ${ss}s`],
   ];
   try{
     const { jsPDF } = window.jspdf;
@@ -890,19 +906,6 @@ function generatePDF(){
       doc.setFont(undefined,'normal'); doc.text(String(v), 95, y);
       y+=8;
     });
-    // organelas recolectadas
-    y+=4; doc.setFont(undefined,'bold'); doc.text('Organelas recolectadas:',14,y); y+=7;
-    doc.setFont(undefined,'normal');
-    const inv=Object.entries(state.inventory);
-    if(!inv.length){ doc.text('—',14,y); y+=7; }
-    inv.forEach(([id,c])=>{ doc.text(`• ${orgName(id)}: ${c}`,18,y); y+=6; });
-    // placements finales
-    const placedA=[...new Set(Object.values(state.placements.animal))].map(orgName);
-    const placedP=[...new Set(Object.values(state.placements.plant))].map(orgName);
-    y+=4; doc.setFont(undefined,'bold'); doc.text('Organelas colocadas en la célula animal:',14,y); y+=7; doc.setFont(undefined,'normal');
-    doc.text(placedA.join(', ')||'—',18,y,{maxWidth:170}); y+=doc.getTextDimensions(placedA.join(', ')||'—',{maxWidth:170}).h+4;
-    doc.setFont(undefined,'bold'); doc.text('Organelas colocadas en la célula vegetal:',14,y); y+=7; doc.setFont(undefined,'normal');
-    doc.text(placedP.join(', ')||'—',18,y,{maxWidth:170});
     // avatar
     try{
       const img=new Image();
@@ -942,7 +945,7 @@ function bindControls(){
   });
 
   $('#btn-verify-cells').onclick=verifyCells;
-  $('#btn-collect-more').onclick=()=>startCatchLevel(0,true);
+  $('#btn-collect-more').onclick=()=>{ state.extraFor=state.cellStage; startCatchLevel(0,true); };
   $('#btn-next-cell').onclick=()=>{
     state.cellStage='plant';
     $('#msg-cell').textContent='';
