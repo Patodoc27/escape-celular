@@ -375,6 +375,10 @@ h3{ color:var(--ink); }
 .rou-msg{ min-height:1.3em; font-weight:700; margin-top:8px; }
 .rou-msg.ok{ color:#1b8a3e; }
 .rou-msg.bad{ color:#c62828; }
+.rou-msg.warn{ color:#e65100; }
+/* en la ruleta no se puede seleccionar/copiar la consigna */
+#screen-match{ user-select:none; -webkit-user-select:none; }
+#screen-match input{ user-select:text; -webkit-user-select:text; }
 .rou-card.answered{ border-color:#ffd93b; box-shadow:0 0 14px rgba(255,217,59,.7); }
 
 /* ---------- doors ---------- */

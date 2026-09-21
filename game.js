@@ -32,19 +32,19 @@ const KEYS_2=55, KEYS_1=25;
 
 const STRUCTURES = [
   { name:'Membrana plasmática',             fn:'Controla qué sustancias entran y salen de la célula' },
-  { name:'Pared celular',                   fn:'Protege y da forma a la célula vegetal' },
-  { name:'Citoplasma',                      fn:'Contiene a las organelas y permite que ocurran las reacciones químicas de la célula' },
+  { name:'Pared celular',                   fn:'Protege a la célula y le da forma' },
+  { name:'Citoplasma',                      fn:'Rodea a las organelas; en él ocurren muchas de las reacciones químicas de la célula' },
   { name:'Citoesqueleto',                   fn:'Sostiene la forma de la célula y mueve sus partes internas' },
-  { name:'Núcleo',                          fn:'Guarda la información genética y dirige las actividades de la célula' },
-  { name:'Retículo endoplasmático rugoso',  fn:'Fabrica proteínas para ser transportadas' },
-  { name:'Retículo endoplasmático liso',    fn:'Fabrica grasas y elimina sustancias tóxicas' },
-  { name:'Aparato de Golgi',                fn:'Modifica, empaqueta y envía las sustancias de la célula' },
-  { name:'Lisosomas',                       fn:'Digiere desechos y partes dañadas de la célula' },
-  { name:'Mitocondrias',                    fn:'Libera energía a partir de los nutrientes' },
-  { name:'Ribosomas',                       fn:'Fabrica las proteínas de la célula' },
-  { name:'Cloroplastos',                    fn:'Usa la luz del sol para transformar agua y dióxido de carbono en alimento' },
-  { name:'Vacuola central',                 fn:'Almacena agua y sustancias, y mantiene firme la célula' },
-  { name:'Centríolos',                      fn:'Participa en la división de la célula' },
+  { name:'Núcleo',                          fn:'Guarda la mayor parte de la información genética y dirige las actividades de la célula' },
+  { name:'Retículo endoplasmático rugoso',  fn:'Prepara y transporta las proteínas que fabrican los ribosomas pegados a su superficie' },
+  { name:'Retículo endoplasmático liso',    fn:'Produce grasas y transforma algunas sustancias tóxicas para que puedan eliminarse' },
+  { name:'Aparato de Golgi',                fn:'Empaqueta y envía a su destino las sustancias que fabrica la célula, después de modificarlas' },
+  { name:'Lisosomas',                       fn:'Digieren sustancias que ingresan a la célula, desechos y partes dañadas' },
+  { name:'Mitocondrias',                    fn:'Liberan la energía de los nutrientes. En ellas ocurre la respiración celular' },
+  { name:'Ribosomas',                       fn:'Fabrican las proteínas de la célula' },
+  { name:'Cloroplastos',                    fn:'Captan la luz del sol y la usan para transformar agua y dióxido de carbono en alimento. En ellos ocurre la fotosíntesis' },
+  { name:'Vacuola central',                 fn:'Almacena agua y otras sustancias, mantiene firme la célula y digiere desechos' },
+  { name:'Centríolos',                      fn:'Organizan las fibras que reparten el material genético cuando la célula se divide' },
 ];
 
 const AVATARS = [
@@ -464,6 +464,7 @@ let selectedChip=null;
 function enterBuild(){
   show('screen-build');
   $('#msg-cell').textContent='';
+  $('#build-keys').textContent=`🔑 Llaves de células: Animal ${state.cellKey.animal?'✔':'—'} · Vegetal ${state.cellKey.plant?'✔':'—'}`;
   renderDiagram(); renderTray();
   updateCollectMoreBtn(); updateBuildButtons();
 }
@@ -641,6 +642,7 @@ let rouStructIdx=[], rouDone=[], rouSpin=0, rouCur=-1, rouAngle=0, rouSpinning=f
 let matchKeysEarned=0, matchErrors=0;
 
 function normAns(s){ return (s||'').toLowerCase().trim().replace(/\s+/g,' ').replace(/\.+$/,''); }
+const stripAcc=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 
 function enterMatch(){
   show('screen-match');
@@ -650,7 +652,6 @@ function enterMatch(){
   matchKeysEarned=0; matchErrors=0;
   $('#rou-spin').textContent='1';
   $('#match-errors').textContent='0';
-  $('#match-keys').textContent='0';
   $('#rou-card').classList.add('hidden');
   $('#rou-msg').textContent='';
   $('#btn-to-doors').classList.add('hidden');
@@ -709,13 +710,21 @@ function checkRouAnswer(){
   const ans=normAns($('#rou-input').value);
   if(!ans || rouCur<0) return;
   const i=rouStructIdx[rouCur];
-  const ok=ROULETTE_ANSWERS[i].includes(ans);
+  const aliases=ROULETTE_ANSWERS[i];
+  const ok=aliases.includes(ans);
   const msg=$('#rou-msg');
+  if(!ok && aliases.some(a=>stripAcc(a)===stripAcc(ans))){
+    // misma palabra pero sin tilde (o con tilde mal puesta): no es error —
+    // se le pide escribirla de nuevo con el acento para fijar la escritura
+    msg.textContent='✎ ¡Casi! Esa palabra lleva tilde — escribila de nuevo con el acento.';
+    msg.className='rou-msg warn'; sfx('catch');
+    $('#rou-input').value=''; $('#rou-input').focus();
+    return;
+  }
   if(ok){
     matchKeysEarned++;
     updateHudCount(); sfx('key');
     msg.textContent='✔ ¡Correcto!'; msg.className='rou-msg ok';
-    $('#match-keys').textContent=matchKeysEarned;
   }else{
     matchErrors++; state.matchErrorsTotal++;
     $('#match-errors').textContent=matchErrors;
@@ -743,7 +752,6 @@ function endRoulette(){
   state.keys += earned; state.keysEarned += earned; state.keysBy.roulette+=earned;
   state.rouCorrectTotal += correctas;
   updateHudCount(); if(earned>0) sfx('key');
-  $('#match-keys').textContent = earned;
   const doorsBtn=$('#btn-to-doors');
   doorsBtn.classList.remove('hidden');
   doorsBtn.textContent = earned>0
@@ -839,9 +847,15 @@ function openDoor(i,el){
   }
 }
 
-// volver a jugar para ganar más llaves (la salida y las puertas abiertas se conservan)
+// volver a jugar para ganar más llaves (la salida y las puertas abiertas se
+// conservan; las células se vuelven a armar para reforzar y poder ganar llaves de nuevo)
 function replayForKeys(){
   state.score=0;
+  state.placements={animal:{},plant:{}};
+  state.cellsCompleted=0; state.animalOk=false; state.plantOk=false;
+  state.cellErr={animal:0,plant:0}; state.cellKey={animal:false,plant:false};
+  state.countedWrong={animal:{},plant:{}};
+  state.cellStage='animal'; state.extraFor='animal';
   levelTargets=shuffle(CAT_KEYS);
   startCatchLevel(0);
 }
@@ -943,6 +957,12 @@ function bindControls(){
     if(e.key==='ArrowLeft'||e.key==='a') holdLeft=false;
     if(e.key==='ArrowRight'||e.key==='d') holdRight=false;
   });
+
+  // en la ruleta no se puede copiar la función (clic derecho / Ctrl+C)
+  // así el estudiante responde de memoria y no pega la consigna en otro lado
+  const matchScr=$('#screen-match');
+  matchScr.addEventListener('contextmenu',e=>e.preventDefault());
+  matchScr.addEventListener('copy',e=>e.preventDefault());
 
   $('#btn-verify-cells').onclick=verifyCells;
   $('#btn-collect-more').onclick=()=>{ state.extraFor=state.cellStage; startCatchLevel(0,true); };
