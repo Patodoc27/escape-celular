@@ -2,25 +2,25 @@
 
 /* ================= DATOS ================= */
 const ORGANELLES = [
-  { id:'nucleo',       name:'Núcleo',                    color:'#9b30ff', animal:true,  plant:true  },
-  { id:'mitocondrias', name:'Mitocondrias',              color:'#ff6d00', animal:true,  plant:true  },
-  { id:'rer',          name:'R. endoplasmático rugoso',  color:'#2196f3', animal:true,  plant:true  },
-  { id:'rel',          name:'R. endoplasmático liso',    color:'#00b0ff', animal:true,  plant:true  },
-  { id:'golgi',        name:'Aparato de Golgi',          color:'#ff2d55', animal:true,  plant:true  },
-  { id:'ribosomas',    name:'Ribosomas',                 color:'#a1662f', animal:true,  plant:true  },
-  { id:'lisosomas',    name:'Lisosomas',                 color:'#ffab00', animal:true,  plant:false },
-  { id:'centriolos',   name:'Centríolos',                color:'#e040fb', animal:true,  plant:false },
-  { id:'cloroplastos', name:'Cloroplastos',              color:'#00c853', animal:false, plant:true  },
-  { id:'vacuola',      name:'Vacuola central',           color:'#00b8d4', animal:false, plant:true  },
+  { id:'nucleo',       name:'Núcleo',                    color:'#9b30ff', animal:true,  plant:true,  img:'assets/s_nucleo.png'       },
+  { id:'mitocondrias', name:'Mitocondrias',              color:'#ff6d00', animal:true,  plant:true,  img:'assets/s_mitocondrias.png'  },
+  { id:'rer',          name:'R. endoplasmático rugoso',  color:'#2196f3', animal:true,  plant:true,  img:'assets/s_rer.png'          },
+  { id:'rel',          name:'R. endoplasmático liso',    color:'#00b0ff', animal:true,  plant:true,  img:'assets/s_rel.png'          },
+  { id:'golgi',        name:'Aparato de Golgi',          color:'#ff2d55', animal:true,  plant:true,  img:'assets/s_golgi.png'        },
+  { id:'ribosomas',    name:'Ribosomas',                 color:'#a1662f', animal:true,  plant:true,  img:'assets/s_ribosomas.png'    },
+  { id:'lisosomas',    name:'Lisosomas',                 color:'#ffab00', animal:true,  plant:false, img:'assets/s_lisosomas.png'    },
+  { id:'centriolos',   name:'Centríolos',                color:'#e040fb', animal:true,  plant:false, img:'assets/s_centriolos.png'   },
+  { id:'cloroplastos', name:'Cloroplastos',              color:'#00c853', animal:false, plant:true,  img:'assets/s_cloroplastos.png' },
+  { id:'vacuola',      name:'Vacuola central',           color:'#00b8d4', animal:false, plant:true,  img:'assets/s_vacuola.png'      },
 ];
 /* Las 5 categorías de pelotitas (solo estructuras de la tabla).
    El cartel muestra el TIPO; las pelotitas dicen el nombre de la estructura. */
 const CATEGORIES = {
   organelas: { type:'Organelas' },
-  membrana:  { type:'Membrana biológica', label:'Membrana plasmática', color:'#ff5e8a' },
-  rigida:    { type:'Estructura rígida',  label:'Pared celular',       color:'#ff9e00' },
-  medio:     { type:'Medio interno',      label:'Citoplasma',          color:'#b26bff' },
-  red:       { type:'Red de fibras',      label:'Citoesqueleto',       color:'#29d8e0' },
+  membrana:  { type:'Membrana biológica', label:'Membrana plasmática', color:'#ff5e8a', img:'assets/s_membrana.png'      },
+  rigida:    { type:'Estructura rígida',  label:'Pared celular',       color:'#ff9e00', img:'assets/s_pared.png'         },
+  medio:     { type:'Medio interno',      label:'Citoplasma',          color:'#b26bff', img:'assets/s_citoplasma.png'    },
+  red:       { type:'Red de fibras',      label:'Citoesqueleto',       color:'#29d8e0', img:'assets/s_citoesqueleto.png' },
 };
 const CAT_KEYS = Object.keys(CATEGORIES);
 /* colores aleatorios de las pelotitas: el color NO identifica la estructura,
@@ -55,9 +55,53 @@ const AVATARS = [
   { id:'lisosoma',    label:'Lisosoma',        img:'assets/lisosoma.png' },
 ];
 
-const ANIMAL_REQ = ORGANELLES.filter(o => o.animal).map(o => o.id);
-const PLANT_REQ  = ORGANELLES.filter(o => o.plant).map(o => o.id);
 const ORG_BY_ID  = Object.fromEntries(ORGANELLES.map(o => [o.id, o]));
+
+/* estructuras que no son organelas: id de ítem dentro de cada categoría */
+const CAT_ITEM_ID = { membrana:'membrana', rigida:'pared', medio:'citoplasma', red:'citoesqueleto' };
+const NONORG = {
+  membrana:     { name:'Membrana plasmática', img:'assets/s_membrana.png'      },
+  pared:        { name:'Pared celular',       img:'assets/s_pared.png'         },
+  citoplasma:   { name:'Citoplasma',          img:'assets/s_citoplasma.png'    },
+  citoesqueleto:{ name:'Citoesqueleto',       img:'assets/s_citoesqueleto.png' },
+};
+const ALL_STRUCT_IDS = [...ORGANELLES.map(o=>o.id), ...Object.keys(NONORG)];
+
+/* Recuadros sobre las flechas de cada diagrama (x,y en % de la imagen).
+   Si una estructura tiene varias flechas, una sola ficha las completa todas. */
+const CELL_BOXES = {
+  animal: [
+    { id:'membrana',      x:76,   y:10 },
+    { id:'citoesqueleto', x:42,   y:17 },
+    { id:'citoplasma',    x:16,   y:26 },
+    { id:'rel',           x:20,   y:40 },
+    { id:'rer',           x:65,   y:26 },
+    { id:'nucleo',        x:50,   y:44 },
+    { id:'mitocondrias',  x:17,   y:57,  label:'Mitocondria' },
+    { id:'golgi',         x:78,   y:58 },
+    { id:'centriolos',    x:62,   y:70 },
+    { id:'ribosomas',     x:28,   y:72 },
+    { id:'lisosomas',     x:80,   y:76,  label:'Lisosoma'    },
+  ],
+  plant: [
+    { id:'citoplasma',    x:36,   y:19 },
+    { id:'membrana',      x:76,   y:10 },
+    { id:'rer',           x:60,   y:25 },
+    { id:'cloroplastos',  x:26,   y:30,  label:'Cloroplasto' },
+    { id:'nucleo',        x:86,   y:37 },
+    { id:'mitocondrias',  x:16,   y:46,  label:'Mitocondria' },
+    { id:'pared',         x:10,   y:58 },
+    { id:'rel',           x:88,   y:54 },
+    { id:'vacuola',       x:50,   y:55 },
+    { id:'ribosomas',     x:29,   y:82 },
+    { id:'golgi',         x:87,   y:67 },
+    { id:'citoesqueleto', x:70,   y:50 },
+  ],
+};
+const CELL_REQ = {
+  animal:[...new Set(CELL_BOXES.animal.map(b=>b.id))],
+  plant: [...new Set(CELL_BOXES.plant .map(b=>b.id))],
+};
 
 const NUM_LEVELS = 5, LEVEL_DUR = 45;
 /* Los niveles NO escalan en dificultad: solo cambia la categoría a atrapar
@@ -71,14 +115,6 @@ const LEVELS = [
   { spawn:750, speed:2.2 },
 ];
 
-/* Posiciones de los círculos dentro de cada célula (%) */
-const SLOTS_ANIMAL = [
-  [50,46],[28,30],[72,30],[24,60],[76,60],[38,74],[62,74],[50,18]
-];
-const SLOTS_PLANT = [
-  [50,50],[26,28],[74,28],[22,62],[78,62],[38,76],[62,76],[50,16]
-];
-
 /* ================= ESTADO ================= */
 const state = {
   nombre:'', apellido:'', seccion:'', avatar:null,
@@ -87,7 +123,7 @@ const state = {
   cellsCompleted:0, animalOk:false, plantOk:false,
   matchRoundErrors:0, matchErrorsTotal:0, matchRounds:0,
   keys:0, exitDoor:null, doorsOpened:[], doorsTried:0, keysEarned:0, doorsRound:0,
-  buildHadError:false, cellKeyAwarded:false,
+  buildHadError:false, cellKeyAwarded:false, cellStage:'animal',
   startTime:null, endTime:null,
 };
 
@@ -143,7 +179,8 @@ function show(id){
   window.scrollTo(0,0);
 }
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
-function orgName(id){ return ORG_BY_ID[id].name; }
+function orgName(id){ return ORG_BY_ID[id] ? ORG_BY_ID[id].name : NONORG[id].name; }
+function structImg(id){ return ORG_BY_ID[id] ? ORG_BY_ID[id].img   : NONORG[id].img; }
 function invTotal(){ return Object.values(state.inventory).reduce((a,b)=>a+b,0); }
 
 /* ================= REGISTRO ================= */
@@ -197,16 +234,24 @@ const field=()=>$('#field');
 let balls=[], rafId=null, lastSpawn=0, levelEnd=0, curLevel=null, spawnQueue=[];
 let playerX=200, holdLeft=false, holdRight=false, catchActive=false, extraRound=false;
 
-function neededOrganelles(){
-  const need={};
+/* organelas que aún faltan para completar ambas células (id -> cuántas).
+   Las que no son organelas (membrana, pared, citoplasma, citoesqueleto)
+   están siempre disponibles en la canasta — nunca faltan. */
+function neededStructures(){
   const want={};
-  ANIMAL_REQ.forEach(id=>want[id]=(want[id]||0)+1);
-  PLANT_REQ.forEach(id=>want[id]=(want[id]||0)+1);
-  // restar lo ya colocado y lo que hay en inventario
-  Object.values(state.placements.animal).forEach(id=>{ if(want[id]) want[id]--; });
-  Object.values(state.placements.plant).forEach(id=>{ if(want[id]) want[id]--; });
-  Object.entries(state.inventory).forEach(([id,c])=>{ if(want[id]) want[id]-=c; });
-  Object.entries(want).forEach(([id,c])=>{ if(c>0) need[id]=c; });
+  ['animal','plant'].forEach(kind=>{
+    CELL_REQ[kind].forEach(id=>{
+      if(!ORG_BY_ID[id]) return;
+      const pl=state.placements[kind];
+      const filled=Object.keys(pl).some(i=>CELL_BOXES[kind][i].id===id && pl[i]===id);
+      if(!filled) want[id]=(want[id]||0)+1;
+    });
+  });
+  const need={};
+  Object.entries(want).forEach(([id,c])=>{
+    const left=c-(state.inventory[id]||0);
+    if(left>0) need[id]=left;
+  });
   return need;
 }
 
@@ -220,6 +265,8 @@ function startCatchLevel(i, extra=false){
   curLevel.index=i;
   curLevel.dur=LEVEL_DUR;
   curLevel.target = extra ? 'organelas' : levelTargets[i];
+  const need=neededStructures();
+  curLevel.needSet = extra ? new Set(Object.keys(need).length?Object.keys(need):ORGANELLES.map(o=>o.id)) : null;
   $('#level-result').classList.add('hidden');
   show('screen-catch');
   balls.forEach(b=>b.el.remove()); balls=[];
@@ -228,12 +275,15 @@ function startCatchLevel(i, extra=false){
   $('#hud-pips').textContent = extra ? '★' : Array.from({length:NUM_LEVELS},(_,k)=>k<=i?'●':'○').join('');
   $('#hud-timer').textContent=`⏱ ${curLevel.dur}`;
   $('#timebar-fill').style.width='100%';
-  $('#catch-goal').innerHTML=`Atrapá: <b>${CATEGORIES[curLevel.target].type}</b>`;
+  $('#catch-goal').innerHTML = extra ? 'Atrapá: <b>solo lo que te falta</b> · lo demás resta ⚠️'
+                                    : `Atrapá: <b>${CATEGORIES[curLevel.target].type}</b>`;
   updateHudCount();
   catchActive=true; levelStarted=false; levelEnd=null; lastSpawn=0;
 
   const banner=$('#level-banner');
-  banner.innerHTML = `¡Nivel ${extra?'extra':i+1}!<br><span style="font-size:1.3rem">Atrapá: <b>${CATEGORIES[curLevel.target].type}</b></span><br><span style="font-size:.95rem">⏱ El tiempo arranca cuando te movés</span>`;
+  banner.innerHTML = extra
+    ? `¡Ronda extra!<br><span style="font-size:1.3rem">Atrapá: <b>solo lo que te falta</b></span><br><span style="font-size:.95rem">⚠️ No toques otras estructuras: ¡restan puntos y cuestan la llave!</span>`
+    : `¡Nivel ${i+1}!<br><span style="font-size:1.3rem">Atrapá: <b>${CATEGORIES[curLevel.target].type}</b></span><br><span style="font-size:.95rem">⏱ El tiempo arranca cuando te movés</span>`;
   banner.classList.remove('hidden');
 
   cancelAnimationFrame(rafId);
@@ -244,6 +294,15 @@ function updateHudCount(){
   $('#hud-count').textContent=`🧺 ${state.score}`;
   $('#hud-keys').textContent=`🔑 ${state.keys}`;
   document.querySelectorAll('.js-keys').forEach(e=>e.textContent=state.keys);
+  renderFixedKeys();
+}
+
+/* llaves en circulitos, fijas arriba a la izquierda durante todo el juego */
+function renderFixedKeys(){
+  const kf=$('#hud-keys-fixed');
+  if(!kf) return;
+  kf.innerHTML=Array.from({length:state.keys},()=>'<span class="key-circle">🔑</span>').join('');
+  kf.classList.toggle('hidden', state.keys<=0);
 }
 
 function spawnBall(){
@@ -257,23 +316,33 @@ function spawnBall(){
     cat=others[Math.floor(Math.random()*others.length)];
   }
   let item;
-  const color=BALL_COLORS[Math.floor(Math.random()*BALL_COLORS.length)];
-  if(cat==='organelas'){
-    const need=Object.keys(neededOrganelles());
+  if(extraRound){
+    // ronda extra: solo caen organelas, priorizando las que faltan
+    const ids=[...curLevel.needSet];
+    const pool = ids.length && Math.random()<0.65 ? ids : ORGANELLES.map(o=>o.id);
+    item=itemForId(pool[Math.floor(Math.random()*pool.length)]);
+  }else if(cat==='organelas'){
+    const need=Object.keys(neededStructures());
     const pool = need.length && Math.random()<0.5 ? need : ORGANELLES.map(o=>o.id);
     const id=pool[Math.floor(Math.random()*pool.length)];
-    item={cat, orgId:id, label:ORG_BY_ID[id].name, color};
+    item=itemForId(id);
   }else{
-    item={cat, label:CATEGORIES[cat].label, color};
+    item=itemForId(CAT_ITEM_ID[cat]);
   }
   const w=field().clientWidth;
   const x=10+Math.random()*Math.max(50, w-152);
   const el=document.createElement('div');
   el.className='ball';
-  el.innerHTML=`<div class="orb" style="background:${item.color}"></div><div class="ball-label">${item.label}</div>`;
+  el.innerHTML=`<img class="orb-img" src="${item.img}" alt="" draggable="false"><div class="ball-label">${item.label}</div>`;
   el.style.left='0px'; el.style.top='0px';
   field().appendChild(el);
-  balls.push({el, x, y:-80, item, speed:curLevel.speed*(0.75+Math.random()*0.6)});
+  balls.push({el, x, y:-110, item, speed:curLevel.speed*(0.75+Math.random()*0.6)});
+}
+
+function itemForId(id){
+  if(ORG_BY_ID[id]) return {cat:'organelas', orgId:id, label:ORG_BY_ID[id].name, img:ORG_BY_ID[id].img};
+  const cat=Object.keys(CAT_ITEM_ID).find(c=>CAT_ITEM_ID[c]===id);
+  return {cat, label:NONORG[id].name, img:NONORG[id].img};
 }
 
 function catchLoop(t){
@@ -311,12 +380,15 @@ function catchLoop(t){
     const b=balls[i];
     b.y+=b.speed;
     b.el.style.transform=`translate(${b.x}px,${b.y}px)`;
-    const orbCx=b.x+64, orbBot=b.y+62;
+    const orbCx=b.x+64, orbBot=b.y+76;
     if(orbBot>=bTop && orbBot<=bBot+24 && orbCx>=bL && orbCx<=bR){
       // atrapada
-      if(b.item.cat===curLevel.target){
+      const idKey = b.item.cat==='organelas' ? b.item.orgId : CAT_ITEM_ID[b.item.cat];
+      const isTarget = extraRound ? curLevel.needSet.has(idKey) : b.item.cat===curLevel.target;
+      // toda organela que cae en la canasta se guarda (acierte o no el objetivo)
+      if(b.item.cat==='organelas') state.inventory[idKey]=(state.inventory[idKey]||0)+1;
+      if(isTarget){
         state.score++; state.totalCaught++;
-        if(b.item.cat==='organelas') state.inventory[b.item.orgId]=(state.inventory[b.item.orgId]||0)+1;
         updateHudCount();
         catchPop(b.x+30, b.y);
         sfx('catch');
@@ -347,14 +419,8 @@ function catchPop(x,y){
 
 function loseThree(){
   state.decoyErrors++;
-  let n=3;
-  const ids=Object.keys(state.inventory).filter(id=>state.inventory[id]>0);
-  while(n>0 && ids.length){
-    const id=ids[Math.floor(Math.random()*ids.length)];
-    state.inventory[id]--; if(state.inventory[id]<=0){ delete state.inventory[id]; ids.splice(ids.indexOf(id),1); }
-    n--;
-  }
-  if(n>0) state.score=Math.max(0, state.score-n);   // si no hay organelas, descuenta aciertos
+  state.score=Math.max(0, state.score-3);   // resta puntos; lo recolectado no se pierde
+  if(extraRound) state.buildHadError=true;  // errores en la ronda extra arruinan la llave de la fase
   updateHudCount();
   sfx('wrong');
   const p=$('#penalty');
@@ -385,7 +451,7 @@ function awardCatchKeys(){
   updateHudCount();
   if(earned>0) sfx('key');
   $('#lr-title').textContent='¡Terminaron los 5 niveles!';
-  $('#lr-text').innerHTML=`Atrapaste <b>${state.score}</b> pelotitas correctas.<br>`+
+  $('#lr-text').innerHTML=`Atrapaste <b>${state.totalCaught}</b> pelotitas correctas · Puntaje: <b>${state.score}</b>.<br>`+
     (earned>0 ? `¡Ganaste <b>${earned} llave${earned>1?'s':''}</b>! 🔑` : `No llegaste al puntaje para llaves esta vez.`);
   $('#level-result').classList.remove('hidden');
 }
@@ -395,229 +461,276 @@ let selectedChip=null;
 
 function enterBuild(){
   show('screen-build');
-  renderCells(); renderTray();
-  $('#msg-animal').textContent=''; $('#msg-plant').textContent='';
-  updateCollectMoreBtn();
+  $('#msg-cell').textContent='';
+  renderDiagram(); renderTray();
+  updateCollectMoreBtn(); updateBuildButtons();
 }
 
-function renderCells(){
-  [['animal', '#cell-animal', SLOTS_ANIMAL], ['plant', '#cell-plant', SLOTS_PLANT]].forEach(([kind, sel, slots])=>{
-    const cell=$(sel); cell.innerHTML='';
-    slots.forEach(([px,py],idx)=>{
-      const s=document.createElement('div');
-      s.className='slot'; s.style.left=px+'%'; s.style.top=py+'%';
-      const placed=state.placements[kind][idx];
-      if(placed){
-        s.classList.add('filled');
-        const o=ORG_BY_ID[placed];
-        s.innerHTML=`<div class="mini-orb" style="background:${o.color}">${shortName(o.name)}</div>`;
-      }
-      s.onclick=()=>onSlotClick(kind, idx, s);
-      cell.appendChild(s);
-    });
+function updateBuildButtons(){
+  const animal=state.cellStage==='animal';
+  $('#btn-back-animal').classList.toggle('hidden', animal);
+  $('#btn-next-cell').classList.toggle('hidden', !(animal && state.animalOk));
+  $('#btn-to-match').classList.toggle('hidden', animal);
+}
+
+function renderDiagram(){
+  const kind=state.cellStage;
+  $('#cell-title').textContent = kind==='animal' ? 'Célula eucariota animal' : 'Célula eucariota vegetal';
+  $('#cell-diagram-img').src = `assets/celula_${kind}.png`;
+  const d=$('#cell-diagram');
+  d.querySelectorAll('.dropbox').forEach(e=>e.remove());
+  CELL_BOXES[kind].forEach((box,idx)=>{
+    const s=document.createElement('div');
+    s.className='dropbox'; s.style.left=box.x+'%'; s.style.top=box.y+'%';
+    const placed=state.placements[kind][idx];
+    if(placed){
+      s.classList.add('filled');
+      s.innerHTML=`<span>${box.label||orgName(placed)}</span>`;
+    }else{
+      s.innerHTML='<span class="db-q">?</span>';
+    }
+    s.onclick=()=>onBoxClick(kind, idx);
+    d.appendChild(s);
   });
 }
-function shortName(n){ return n.replace('R. endoplasmático','R.E.').replace(' central','').replace('Vacuola','Vacuola'); }
 
 function renderTray(){
   const tray=$('#tray'); tray.innerHTML='';
+  // siempre disponibles: las estructuras que no son organelas nunca faltan
+  Object.keys(NONORG).forEach(id=>{
+    tray.appendChild(makeChip(id, 'base-'+id));
+  });
+  // una fichita por cada organela atrapada (dos cloroplastos = dos cartelitos)
   const units=[];
   Object.keys(state.inventory).forEach(id=>{
     for(let k=0;k<state.inventory[id];k++) units.push({id, key:id+'-'+k});
   });
-  if(!units.length){ tray.innerHTML='<p style="align-self:center;font-weight:700;color:#888">Canasta vacía — ¡recolecta más organelas!</p>'; }
-  // una fichita por cada organela atrapada (dos cloroplastos = dos cartelitos)
-  units.forEach(({id,key})=>{
-    const o=ORG_BY_ID[id];
-    const chip=document.createElement('div');
-    chip.className='chip'+(selectedChip && selectedChip.key===key?' selected':'');
-    chip.innerHTML=`<span class="dot" style="background:${o.color}"></span>${o.name}`;
-    chip.onclick=()=>{ selectedChip = (selectedChip&&selectedChip.key===key)?null:{id,key}; renderTray(); };
-    tray.appendChild(chip);
-  });
+  units.forEach(({id,key})=>tray.appendChild(makeChip(id, key)));
 }
 
-function onSlotClick(kind, idx, slotEl){
-  const placed=state.placements[kind][idx];
+function makeChip(id, key){
+  const chip=document.createElement('div');
+  chip.className='chip'+(NONORG[id]?' chip-base':'')+(selectedChip && selectedChip.key===key?' selected':'');
+  chip.textContent=orgName(id);   // sin ícono: que relacionen por la palabra
+  chip.onclick=()=>{ selectedChip = (selectedChip&&selectedChip.key===key)?null:{id,key}; renderTray(); renderDiagram(); };
+  return chip;
+}
+
+function onBoxClick(kind, idx){
+  const pl=state.placements[kind];
+  const placed=pl[idx];
   if(placed){
-    state.inventory[placed]=(state.inventory[placed]||0)+1;
-    delete state.placements[kind][idx];
-    renderCells(); renderTray(); updateCollectMoreBtn(); return;
+    // quitar: la ficha vuelve a la canasta (las organelas, al inventario)
+    delete pl[idx];
+    if(ORG_BY_ID[placed]) state.inventory[placed]=(state.inventory[placed]||0)+1;
+    state.animalOk=state.plantOk=false;
+    renderDiagram(); renderTray(); updateCollectMoreBtn(); updateBuildButtons(); return;
   }
-  if(!selectedChip || !state.inventory[selectedChip.id]) return;
-  state.placements[kind][idx]=selectedChip.id;
-  state.inventory[selectedChip.id]--;
-  if(state.inventory[selectedChip.id]<=0) delete state.inventory[selectedChip.id];
+  if(!selectedChip) return;
+  const id=selectedChip.id;
+  const isOrg=!!ORG_BY_ID[id];
+  if(isOrg && !(state.inventory[id]>0)) return;
+  pl[idx]=id;
+  if(isOrg){
+    state.inventory[id]--;
+    if(state.inventory[id]<=0) delete state.inventory[id];
+  }
   selectedChip=null;
-  renderCells(); renderTray(); updateCollectMoreBtn();
+  renderDiagram(); renderTray(); updateCollectMoreBtn(); updateBuildButtons();
 }
 
 function updateCollectMoreBtn(){
-  const missing=missingRequired();
+  const missing=Object.keys(neededStructures());
   $('#btn-collect-more').classList.toggle('hidden', missing.length===0);
-  if(missing.length) $('#btn-collect-more').textContent='🧺 Recolectar más organelas';
-}
-
-function missingRequired(){
-  const missing=[];
-  const placedAnimal=new Set(Object.values(state.placements.animal));
-  const placedPlant =new Set(Object.values(state.placements.plant));
-  const inv=Object.keys(state.inventory);
-  const avail=id => (state.inventory[id]||0)>0;
-  // organelas que faltan considerando inventario + colocadas
-  const allIds=[...ANIMAL_REQ, ...PLANT_REQ];
-  const counts={};
-  Object.values(state.placements.animal).forEach(id=>counts[id]=(counts[id]||0)+1);
-  Object.values(state.placements.plant).forEach(id=>counts[id]=(counts[id]||0)+1);
-  allIds.forEach(id=>{
-    if(counts[id]===undefined) counts[id]=0;
-  });
-  // para cada requerida de cada célula: si no está colocada ni disponible → falta
-  const needed={};
-  ANIMAL_REQ.forEach(id=>{ if(!placedAnimal.has(id)) needed[id]=(needed[id]||0)+1; });
-  PLANT_REQ.forEach(id=>{ if(!placedPlant.has(id)) needed[id]=(needed[id]||0)+1; });
-  Object.entries(needed).forEach(([id,c])=>{
-    const have=state.inventory[id]||0;
-    if(have<c) missing.push(orgName(id));
-  });
-  return missing;
 }
 
 function verifyCells(){
-  const res={};
-  [['animal', ANIMAL_REQ, state.placements.animal, '#msg-animal'],
-   ['plant',  PLANT_REQ,  state.placements.plant,  '#msg-plant']].forEach(([kind, req, pl, msgSel])=>{
-    const placedIds=Object.values(pl);
-    const placedSet=new Set(placedIds);
-    const missing=req.filter(id=>!placedSet.has(id));
-    const foreign=placedIds.filter(id=>!req.includes(id));
-    const msgEl=$(msgSel);
-    const slots=$('#cell-'+kind).querySelectorAll('.slot');
-    slots.forEach(s=>s.classList.remove('bad'));
-    if(missing.length===0 && foreign.length===0){
-      res[kind]=true;
-      msgEl.textContent='✅ ¡Célula completa y correcta!';
-      msgEl.className='cell-msg ok';
-    }else{
-      res[kind]=false;
-      state.buildHadError=true;
-      let txt=[];
-      if(missing.length) txt.push('Falta: '+missing.map(orgName).join(', '));
-      if(foreign.length) txt.push('No corresponde: '+[...new Set(foreign)].map(orgName).join(', '));
-      msgEl.textContent='❌ '+txt.join(' · ');
-      msgEl.className='cell-msg bad';
-      // marcar slots con organelas fuera de lugar
-      Object.entries(pl).forEach(([idx,id])=>{
-        if(!req.includes(id)) slots[idx].classList.add('bad');
-      });
+  const kind=state.cellStage;
+  const boxes=CELL_BOXES[kind], pl=state.placements[kind];
+  const msgEl=$('#msg-cell');
+  const dom=d=>document.querySelectorAll('#cell-diagram .dropbox');
+  const missing=[], wrong=[];
+  dom().forEach(s=>s.classList.remove('bad'));
+  boxes.forEach((b,i)=>{
+    const p=pl[i];
+    if(!p){
+      if(!boxes.some((bb,j)=>bb.id===b.id && pl[j]===b.id) && !missing.includes(b.id)) missing.push(b.id);
+    }else if(p!==b.id){
+      if(!wrong.includes(p)) wrong.push(p);
+      dom()[i].classList.add('bad');
     }
   });
-  state.animalOk=!!res.animal; state.plantOk=!!res.plant;
-  state.cellsCompleted=(res.animal?1:0)+(res.plant?1:0);
+  const ok = missing.length===0 && wrong.length===0;
+  if(ok){
+    msgEl.textContent='✅ ¡Célula completa y correcta!';
+    msgEl.className='cell-msg ok';
+  }else{
+    state.buildHadError=true;
+    let txt=[];
+    if(missing.length) txt.push('Falta: '+missing.map(orgName).join(', '));
+    if(wrong.length)  txt.push('No corresponde ahí: '+wrong.map(orgName).join(', '));
+    msgEl.textContent='❌ '+txt.join(' · ');
+    msgEl.className='cell-msg bad';
+  }
+  if(kind==='animal') state.animalOk=ok; else state.plantOk=ok;
+  state.cellsCompleted=(state.animalOk?1:0)+(state.plantOk?1:0);
   // llave extra si armó ambas células sin equivocarse
-  if(res.animal && res.plant && !state.buildHadError && !state.cellKeyAwarded){
+  if(state.animalOk && state.plantOk && !state.buildHadError && !state.cellKeyAwarded){
     state.cellKeyAwarded=true; state.keys+=1; state.keysEarned+=1;
     updateHudCount(); sfx('key');
     $('#build-keys').textContent='🔑 ¡Células perfectas! Ganaste 1 llave extra.';
   }else{
     $('#build-keys').textContent='';
   }
+  updateBuildButtons();
 }
 
-/* ================= EMPAREJAR ================= */
-let matchSel=null, matchSelColor='', matchPairs=0, matchErrors=0, matchBlocks=[], matchBlockIdx=0;
-let pairColorIdx=0, blockStartErrors=0, matchKeysEarned=0;
-const BLOCK_SIZES=[5,5,4], DISTRACTORS_PER_BLOCK=2;
-/* cada pareja estructura-función correcta queda marcada con el mismo color */
-const PAIR_COLORS=['#ffd93b','#ff9e6b','#7ee08a','#6ec6ff','#ce93d8','#ff8fb3','#4dd0e1','#fff176','#a8e063','#f48fb1'];
+/* re-verifica ambas células en silencio (para el botón Continuar) */
+function verifyAllCells(){
+  ['animal','plant'].forEach(kind=>{
+    const boxes=CELL_BOXES[kind], pl=state.placements[kind];
+    let ok=true;
+    boxes.forEach((b,i)=>{ const p=pl[i]; if(!p || p!==b.id) ok=false; });
+    if(kind==='animal') state.animalOk=ok; else state.plantOk=ok;
+  });
+  state.cellsCompleted=(state.animalOk?1:0)+(state.plantOk?1:0);
+}
+
+/* ================= RULETA DE FUNCIONES ================= */
+/* ruleta de 14 números: cada tirada abre la función de una estructura al azar
+   (sin repetir dentro de la partida) y el estudiante escribe su nombre.
+   Cada acierto = 1 llave. Máximo 7 tiradas. */
+const ROULETTE_SPINS = 7;
+/* respuestas aceptadas (normalizadas: minúsculas, sin espacios extra,
+   tildes OBLIGATORIOS). Orden = índice en STRUCTURES. */
+const ROULETTE_ANSWERS = [
+  ['membrana plasmática','membrana'],
+  ['pared celular'],
+  ['citoplasma'],
+  ['citoesqueleto'],
+  ['núcleo'],
+  ['retículo endoplasmático rugoso','r. endoplasmático rugoso','r endoplasmático rugoso','rer'],
+  ['retículo endoplasmático liso','r. endoplasmático liso','r endoplasmático liso','rel'],
+  ['aparato de golgi','golgi'],
+  ['lisosomas','lisosoma'],
+  ['mitocondrias','mitocondria'],
+  ['ribosomas','ribosoma'],
+  ['cloroplastos','cloroplasto'],
+  ['vacuola central','vacuola'],
+  ['centríolos','centríolo'],
+];
+
+let rouStructIdx=[], rouDone=[], rouSpin=0, rouCur=-1, rouAngle=0, rouSpinning=false;
+let matchKeysEarned=0, matchErrors=0;
+
+function normAns(s){ return (s||'').toLowerCase().trim().replace(/\s+/g,' ').replace(/\.+$/,''); }
 
 function enterMatch(){
   show('screen-match');
-  matchErrors=0; matchBlockIdx=0; pairColorIdx=0; blockStartErrors=0; matchKeysEarned=0;
-  // repartir las 14 estructuras en tres bloques de 5, 5 y 4 (aleatorio)
-  const idxs=shuffle(STRUCTURES.map((s,i)=>i));
-  matchBlocks=[idxs.slice(0,BLOCK_SIZES[0]), idxs.slice(BLOCK_SIZES[0],BLOCK_SIZES[0]+BLOCK_SIZES[1]), idxs.slice(BLOCK_SIZES[0]+BLOCK_SIZES[1])];
-  renderMatchBlock();
-}
-
-function renderMatchBlock(){
-  matchSel=null; matchPairs=0; blockStartErrors=matchErrors;
-  $('#match-block').textContent=matchBlockIdx+1;
-  $('#match-errors').textContent=matchErrors;
-  $('#match-keys').textContent=matchKeysEarned;
+  rouStructIdx=shuffle(STRUCTURES.map((s,i)=>i));
+  rouDone=Array(STRUCTURES.length).fill(false);
+  rouSpin=0; rouCur=-1; rouAngle=0; rouSpinning=false;
+  matchKeysEarned=0; matchErrors=0;
+  $('#rou-spin').textContent='1';
+  $('#match-errors').textContent='0';
+  $('#match-keys').textContent='0';
+  $('#rou-card').classList.add('hidden');
+  $('#rou-msg').textContent='';
   $('#btn-to-doors').classList.add('hidden');
-  $('#btn-retry-match').classList.add('hidden');
-  $('#btn-next-block').classList.add('hidden');
-  const left=$('#match-left'), right=$('#match-right');
-  left.innerHTML=''; right.innerHTML='';
-  const block=matchBlocks[matchBlockIdx];
-  // funciones: las del bloque + 2 distractoras de estructuras de otros bloques
-  const notInBlock=STRUCTURES.map((s,i)=>i).filter(i=>!block.includes(i));
-  const distractors=shuffle(notInBlock).slice(0,DISTRACTORS_PER_BLOCK);
-  const rightItems=shuffle([...block.map(i=>({idx:i,decoy:false})), ...distractors.map(i=>({idx:i,decoy:true}))]);
-  block.forEach(i=>{
-    const el=document.createElement('div');
-    el.className='match-item'; el.textContent=STRUCTURES[i].name; el.dataset.idx=i;
-    el.onclick=()=>{
-      if(el.classList.contains('done')) return;
-      left.querySelectorAll('.match-item').forEach(x=>{ x.classList.remove('selected'); if(!x.classList.contains('done')) x.style.background=''; });
-      // cada estructura elegida recibe un color distinto
-      matchSelColor=PAIR_COLORS[pairColorIdx++ % PAIR_COLORS.length];
-      el.classList.add('selected'); el.style.background=matchSelColor;
-      matchSel=i;
-    };
-    left.appendChild(el);
-  });
-  rightItems.forEach(({idx,decoy})=>{
-    const el=document.createElement('div');
-    el.className='match-item fn'+(decoy?' decoy-fn':''); el.textContent=STRUCTURES[idx].fn; el.dataset.idx=idx;
-    el.onclick=()=>{
-      if(matchSel===null || el.classList.contains('done')) return;
-      const leftEl=left.querySelector(`.match-item[data-idx="${matchSel}"]`);
-      if(Number(el.dataset.idx)===matchSel){
-        el.classList.add('done'); leftEl.classList.add('done'); leftEl.classList.remove('selected');
-        el.style.background=matchSelColor; leftEl.style.background=matchSelColor;
-        matchSel=null; matchSelColor=''; matchPairs++;
-        if(matchPairs===block.length) finishMatchBlock();
-      }else{
-        matchErrors++; state.matchErrorsTotal++;
-        $('#match-errors').textContent=matchErrors;
-        el.classList.add('wrong'); el.style.background='#ffcdd2';
-        leftEl.classList.add('wrong'); leftEl.style.background='#ffcdd2';
-        setTimeout(()=>{
-          el.classList.remove('wrong'); el.style.background='';
-          leftEl.classList.remove('wrong'); leftEl.classList.remove('selected'); leftEl.style.background='';
-        },450);
-        matchSel=null; matchSelColor='';
-      }
-    };
-    right.appendChild(el);
-  });
+  $('#btn-spin').classList.remove('hidden');
+  buildRoulette();
 }
 
-function finishMatchBlock(){
-  // revelar las distractoras que quedaron sin pareja
-  document.querySelectorAll('#match-right .match-item.decoy-fn:not(.done)').forEach(el=>{
-    el.classList.add('revealed');
-    el.textContent='🚫 '+el.textContent;
-  });
-  if(matchBlockIdx<matchBlocks.length-1){
-    $('#btn-next-block').classList.remove('hidden');
-  }else{
-    state.matchRounds++;
-    // 1 llave por BLOQUE completado con 0 o 1 error (hasta 3 en total)
-    const blockErr=matchErrors-blockStartErrors;
-    const earned = blockErr<=1 ? 1 : 0;
-    matchKeysEarned+=earned;
-    state.keys+=earned; state.keysEarned+=earned;
-    updateHudCount(); if(earned>0) sfx('key');
-    $('#match-keys').textContent=matchKeysEarned;
-    const doorsBtn=$('#btn-to-doors');
-    doorsBtn.classList.remove('hidden');
-    doorsBtn.textContent = matchKeysEarned>0
-      ? `🚪 Ir a las puertas (¡ganaste ${matchKeysEarned} llave${matchKeysEarned>1?'s':''}! Tenés ${state.keys})`
-      : `🚪 Ir a las puertas (tenés ${state.keys} llave${state.keys===1?'':'s'})`;
+function buildRoulette(){
+  const w=$('#roulette'); w.innerHTML='';
+  const n=STRUCTURES.length, seg=360/n;
+  const cols=[];
+  for(let i=0;i<n;i++) cols.push(i%2 ? '#7c4dff' : '#4527a0');
+  w.style.background=`conic-gradient(${cols.map((c,i)=>`${c} ${i*seg}deg ${(i+1)*seg}deg`).join(',')})`;
+  w.style.transform=`rotate(${rouAngle}deg)`;
+  for(let i=0;i<n;i++){
+    const s=document.createElement('span');
+    s.className='rou-seg'; s.dataset.seg=i; s.textContent=i+1;
+    const a=i*seg+seg/2;
+    s.style.transform=`rotate(${a}deg) translate(-50%,-112px)`;
+    w.appendChild(s);
   }
+}
+
+function spinRoulette(){
+  if(rouSpinning || rouSpin>=ROULETTE_SPINS) return;
+  const avail=[];
+  for(let i=0;i<rouDone.length;i++) if(!rouDone[i]) avail.push(i);
+  const target=avail[Math.floor(Math.random()*avail.length)];
+  rouCur=target; rouDone[target]=true; rouSpin++;
+  rouSpinning=true;
+  $('#rou-spin').textContent=rouSpin;
+  $('#btn-spin').classList.add('hidden');
+  sfx('catch');
+  const seg=360/STRUCTURES.length;
+  const segAngle=target*seg+seg/2;
+  // llevar el segmento elegido bajo la flecha (arriba)
+  const finalMod=((360-segAngle)%360+360)%360;
+  const delta=((finalMod-(rouAngle%360))%360+360)%360 + 360*4 + (Math.random()*10-5);
+  rouAngle+=delta;
+  const w=$('#roulette');
+  w.style.transform=`rotate(${rouAngle}deg)`;
+  setTimeout(()=>{ rouSpinning=false; onRouletteStop(); },3700);
+}
+
+function onRouletteStop(){
+  document.querySelector(`.rou-seg[data-seg="${rouCur}"]`)?.classList.add('used');
+  const i=rouStructIdx[rouCur];
+  $('#rou-num').textContent='N° '+(rouCur+1);
+  $('#rou-fn').textContent=STRUCTURES[i].fn;
+  $('#rou-input').value=''; $('#rou-msg').textContent=''; $('#rou-msg').className='rou-msg';
+  $('#rou-card').classList.remove('hidden');
+  $('#rou-input').focus();
+}
+
+function checkRouAnswer(){
+  const ans=normAns($('#rou-input').value);
+  if(!ans || rouCur<0) return;
+  const i=rouStructIdx[rouCur];
+  const ok=ROULETTE_ANSWERS[i].includes(ans);
+  const msg=$('#rou-msg');
+  if(ok){
+    matchKeysEarned++;
+    updateHudCount(); sfx('key');
+    msg.textContent='✔ ¡Correcto!'; msg.className='rou-msg ok';
+    $('#match-keys').textContent=matchKeysEarned;
+  }else{
+    matchErrors++; state.matchErrorsTotal++;
+    $('#match-errors').textContent=matchErrors;
+    sfx('wrong');
+    msg.textContent='✘ Era: '+STRUCTURES[i].name; msg.className='rou-msg bad';
+  }
+  $('#rou-card').classList.add('answered');
+  setTimeout(()=>{
+    $('#rou-card').classList.add('hidden');
+    $('#rou-card').classList.remove('answered');
+    if(rouSpin<ROULETTE_SPINS){
+      $('#btn-spin').classList.remove('hidden');
+    }else{
+      endRoulette();
+    }
+  },1700);
+}
+
+function endRoulette(){
+  state.matchRounds++;
+  // llaves al final: 7 aciertos → 2 llaves · 1-2 errores → 1 llave · 3+ → ninguna
+  const correctas = ROULETTE_SPINS - matchErrors;
+  const earned = matchErrors===0 ? 2 : (matchErrors<=2 ? 1 : 0);
+  matchKeysEarned = earned;
+  state.keys += earned; state.keysEarned += earned;
+  updateHudCount(); if(earned>0) sfx('key');
+  $('#match-keys').textContent = earned;
+  const doorsBtn=$('#btn-to-doors');
+  doorsBtn.classList.remove('hidden');
+  doorsBtn.textContent = earned>0
+    ? `🚪 Ir a las puertas (${correctas}/7 · ¡ganaste ${earned} llave${earned>1?'s':''}! Tenés ${state.keys})`
+    : `🚪 Ir a las puertas (${correctas}/7 · tenés ${state.keys} llave${state.keys===1?'':'s'})`;
 }
 
 /* ================= PUERTAS ================= */
@@ -644,6 +757,7 @@ function updateKeysHud(){
   $('#keys-icons').textContent='🔑'.repeat(state.keys)||'—';
   $('#hud-keys').textContent=`🔑 ${state.keys}`;
   document.querySelectorAll('.js-keys').forEach(e=>e.textContent=state.keys);
+  renderFixedKeys();
 }
 
 function renderDoors(){
@@ -728,7 +842,7 @@ function finishGame(){
       <tr><td>Pelotitas correctas atrapadas</td><td>${state.totalCaught}</td></tr>
       <tr><td>Errores (pelotitas incorrectas)</td><td>${state.decoyErrors}</td></tr>
       <tr><td>Células completas</td><td>${state.cellsCompleted} de 2 (${cellsDesc})</td></tr>
-      <tr><td>Errores en emparejamiento</td><td>${state.matchErrorsTotal}</td></tr>
+      <tr><td>Errores en la ruleta de funciones</td><td>${state.matchErrorsTotal}</td></tr>
       <tr><td>Llaves obtenidas</td><td>${state.keysEarned}</td></tr>
       <tr><td>Puertas abiertas</td><td>${state.doorsTried}</td></tr>
       <tr><td>Tiempo total</td><td>${mm}m ${ss}s</td></tr>
@@ -748,8 +862,8 @@ function generatePDF(){
     ['Célula animal completa', state.animalOk?'Sí':'No'],
     ['Célula vegetal completa', state.plantOk?'Sí':'No'],
     ['Células completas', `${state.cellsCompleted} de 2`],
-    ['Errores en emparejamiento estructura-función', String(state.matchErrorsTotal)],
-    ['Rondas de emparejamiento jugadas', String(state.matchRounds)],
+    ['Errores en la ruleta de funciones', String(state.matchErrorsTotal)],
+    ['Rondas de ruleta jugadas', String(state.matchRounds)],
     ['Llaves obtenidas', String(state.keysEarned)],
     ['Puertas abiertas hasta encontrar la salida', String(state.doorsTried)],
     ['Tiempo total de juego', `${mm}m ${ss}s`],
@@ -829,19 +943,31 @@ function bindControls(){
 
   $('#btn-verify-cells').onclick=verifyCells;
   $('#btn-collect-more').onclick=()=>startCatchLevel(0,true);
+  $('#btn-next-cell').onclick=()=>{
+    state.cellStage='plant';
+    $('#msg-cell').textContent='';
+    renderDiagram(); renderTray(); updateCollectMoreBtn(); updateBuildButtons();
+  };
+  $('#btn-back-animal').onclick=()=>{
+    state.cellStage='animal';
+    $('#msg-cell').textContent='';
+    renderDiagram(); renderTray(); updateCollectMoreBtn(); updateBuildButtons();
+  };
   $('#btn-to-match').onclick=()=>{
-    verifyCells();
+    verifyAllCells();
     if(state.animalOk && state.plantOk) enterMatch();
     else{
       sfx('wrong');
       const hint=$('#build-keys');
       hint.textContent='⚠️ Todavía hay errores en las células. Usá 🔍 Controlar para ver qué falta o qué no corresponde.';
       $('#btn-to-match').classList.remove('shake'); void $('#btn-to-match').offsetWidth; $('#btn-to-match').classList.add('shake');
+      if(!state.animalOk){ state.cellStage='animal'; $('#msg-cell').textContent=''; renderDiagram(); renderTray(); updateBuildButtons(); }
     }
   };
-  $('#btn-next-block').onclick=()=>{ matchBlockIdx++; renderMatchBlock(); };
+  $('#btn-spin').onclick=spinRoulette;
+  $('#btn-rou-check').onclick=checkRouAnswer;
+  $('#rou-input').addEventListener('keydown',e=>{ if(e.key==='Enter') checkRouAnswer(); });
   $('#btn-to-doors').onclick=enterDoors;
-  $('#btn-retry-match').onclick=enterMatch;
   $('#btn-back-keys').onclick=replayForKeys;
   $('#btn-lr-continue').onclick=enterBuild;
   $('#btn-pdf').onclick=generatePDF;

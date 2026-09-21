@@ -6,12 +6,14 @@
 <title>ESCAPE CELULAR — Juego de Organelas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/png" href="assets/logo.png">
+<link rel="stylesheet" href="style.css?v=6">
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 </head>
 <body>
 <audio id="bgm" src="assets/Escape_Celular.mp3" loop preload="auto"></audio>
 <button id="btn-mute" class="mute-btn" title="Silenciar música">🔊</button>
+<div id="hud-keys-fixed" class="keys-fixed hidden"></div>
 <div id="app">
 
   <!-- ============ PORTADA (primera pantalla) ============ -->
@@ -30,9 +32,9 @@
       <div class="rules-grid">
         <div class="rule-tile"><div class="rule-icon">🧺</div><h3>Mové la canasta</h3><p>Con ◀ ▶ atrapá las pelotitas. ¡El reloj arranca al moverte!</p></div>
         <div class="rule-tile"><div class="rule-icon">🎯</div><h3>Leé el objetivo</h3><p>El cartel dice el TIPO a atrapar. Vos deducís cuáles son. 5 niveles × 45 s.</p></div>
-        <div class="rule-tile"><div class="rule-icon">❌</div><h3>Ojo con los errores</h3><p>Si atrapás una que no es, perdés 3 de tu canasta.</p></div>
-        <div class="rule-tile"><div class="rule-icon">🔬</div><h3>Armá y emparejá</h3><p>Construí las 2 células y uní cada estructura con su función.</p></div>
-        <div class="rule-tile"><div class="rule-icon">🔑</div><h3>Ganá llaves</h3><p>Jugá bien en cada fase y ganás hasta 7 llaves.</p></div>
+        <div class="rule-tile"><div class="rule-icon">❌</div><h3>Ojo con los errores</h3><p>Si atrapás una que no es, te resta 3 puntos.</p></div>
+        <div class="rule-tile"><div class="rule-icon">🔬</div><h3>Armá y girá</h3><p>Construí las 2 células y jugá la ruleta de funciones.</p></div>
+        <div class="rule-tile"><div class="rule-icon">🔑</div><h3>Ganá llaves</h3><p>Jugá bien en cada fase y ganás hasta 11 llaves.</p></div>
         <div class="rule-tile"><div class="rule-icon">🚪</div><h3>15 puertas, 1 salida</h3><p>Cada llave abre una puerta. ¡Encontrá la salida y llevate tu PDF!</p></div>
       </div>
       <button id="btn-to-register" class="btn btn-glow big">¡Entendido! ➜</button>
@@ -116,47 +118,60 @@
 
   <!-- ============ ARMAR CÉLULAS ============ -->
   <section id="screen-build" class="screen">
-    <div class="card wide">
-      <h2>🔬 Construye las células</h2>
-      <p class="subtitle">Toca una organela recolectada y luego toca un círculo dentro de cada célula para colocarla. Solo son válidas las células con las estructuras más importantes.</p>
+    <div class="card wide build-card">
+      <h2>🔬 Armá las células</h2>
+      <p class="subtitle">Tocá una estructura de tu canasta y después el recuadro donde va. Si te falta alguna, podés volver a recolectar.</p>
       <div class="match-score">🔑 Llaves: <b class="js-keys">0</b></div>
-      <div class="cells-wrap">
-        <div class="cell-panel">
-          <h3>Célula eucariota animal</h3>
-          <div id="cell-animal" class="cell cell-animal"></div>
-          <p id="msg-animal" class="cell-msg"></p>
+      <div class="build-wrap">
+        <div class="diagram-panel">
+          <h3 id="cell-title" class="cell-title">Célula eucariota animal</h3>
+          <div id="cell-diagram" class="cell-diagram">
+            <img id="cell-diagram-img" src="assets/celula_animal.png" alt="Célula">
+          </div>
+          <p id="msg-cell" class="cell-msg"></p>
         </div>
-        <div class="cell-panel">
-          <h3>Célula eucariota vegetal</h3>
-          <div id="cell-plant" class="cell cell-plant"></div>
-          <p id="msg-plant" class="cell-msg"></p>
+        <div class="tray-col">
+          <h3 class="tray-title">🧺 Lo que recolectaste</h3>
+          <div id="tray" class="tray"></div>
+          <p id="build-keys" class="keys-msg"></p>
         </div>
       </div>
-      <h3 class="tray-title">🧺 Tus organelas recolectadas</h3>
-      <div id="tray" class="tray"></div>
-      <p id="build-keys" class="keys-msg"></p>
       <div class="btn-row">
-        <button id="btn-collect-more" class="btn btn-warn hidden">🧺 Recolectar más organelas</button>
+        <button id="btn-back-animal" class="btn btn-ghost hidden">◀ Célula animal</button>
+        <button id="btn-collect-more" class="btn btn-warn hidden">🧺 Recolectar más estructuras</button>
         <button id="btn-verify-cells" class="btn btn-primary">🔍 Controlar</button>
-        <button id="btn-to-match" class="btn btn-primary">Continuar ➜</button>
+        <button id="btn-next-cell" class="btn btn-primary hidden">Siguiente: célula vegetal ➜</button>
+        <button id="btn-to-match" class="btn btn-primary hidden">Continuar ➜</button>
       </div>
     </div>
   </section>
 
-  <!-- ============ EMPAREJAR ============ -->
+  <!-- ============ RULETA DE FUNCIONES ============ -->
   <section id="screen-match" class="screen">
     <div class="card wide">
-      <h2>🧩 Empareja estructura y función</h2>
-      <p class="subtitle">Tocá una estructura y luego su función — cada pareja se marca con un color. ¡Ojo! Hay funciones <b>distractoras</b> que no corresponden a ninguna estructura del bloque. Cada <b>bloque</b> completado con 0 o 1 error suma <b>1 llave</b> (hasta 3 en total).</p>
-      <div class="match-score">🔑 Llaves: <b class="js-keys">0</b> · Bloque <b id="match-block">1</b> de 3 · Errores: <b id="match-errors">0</b> · Llaves ganadas: <b id="match-keys">0</b></div>
-      <div class="match-wrap">
-        <div id="match-left" class="match-col"></div>
-        <div id="match-right" class="match-col"></div>
+      <h2>🎡 La ruleta de las funciones</h2>
+      <p class="subtitle">Tirá la ruleta <b>7 veces</b>. El número que salga abre una <b>función</b> — escribí el nombre de la estructura que le corresponde <b>(¡con tildes!)</b>. Las <b>7 correctas</b> → 2 llaves · 1 o 2 errores → 1 llave · 3 o más → ninguna.</p>
+      <div class="match-score">🔑 Llaves: <b class="js-keys">0</b> · Tirada <b id="rou-spin">1</b> de 7 · Errores: <b id="match-errors">0</b> · Llaves ganadas: <b id="match-keys">0</b></div>
+      <div class="roulette-wrap">
+        <div class="roulette-box">
+          <div class="roulette-pointer">▼</div>
+          <div id="roulette" class="roulette"></div>
+        </div>
+        <div class="roulette-side">
+          <div id="rou-card" class="rou-card hidden">
+            <div class="rou-num" id="rou-num">N° 1</div>
+            <p class="rou-fn" id="rou-fn"></p>
+            <div class="rou-answer">
+              <input id="rou-input" type="text" placeholder="Escribí la estructura…" autocomplete="off">
+              <button id="btn-rou-check" class="btn btn-primary">✔</button>
+            </div>
+            <p id="rou-msg" class="rou-msg"></p>
+          </div>
+          <button id="btn-spin" class="btn btn-glow big">🎡 ¡Girar!</button>
+        </div>
       </div>
       <div class="btn-row">
-        <button id="btn-next-block" class="btn btn-primary big hidden">Siguiente bloque ➜</button>
         <button id="btn-to-doors" class="btn btn-primary big hidden">🚪 Ir a las puertas</button>
-        <button id="btn-retry-match" class="btn btn-warn hidden">🔁 Reintentar</button>
       </div>
     </div>
   </section>
@@ -190,6 +205,6 @@
   <div id="print-report" class="print-only"></div>
 
 </div>
-<script src="game.js"></script>
+<script src="game.js?v=6"></script>
 </body>
 </html>
