@@ -27,8 +27,16 @@ const CAT_KEYS = Object.keys(CATEGORIES);
    así el estudiante tiene que leer el nombre */
 const BALL_COLORS=['#ff3d5e','#ff9500','#ffd000','#7cfc00','#00c853','#00e5d4','#00b0ff','#2979ff','#7c4dff','#e040fb','#ff2d95','#a1662f'];
 /* umbrales de llaves por puntaje al atrapar: 55+ → 2 llaves,
-   25–54 → 1, menos → ninguna (máx 6 llaves por partida en total) */
+   25–54 → 1, menos → ninguna. Máximo 6 llaves en total en la mano
+   (así hacen falta ~3 partidas para abrir las 15 puertas). */
 const KEYS_2=55, KEYS_1=25;
+const MAX_KEYS=6;
+/* otorga llaves sin pasar el tope de 6; devuelve cuántas se dieron */
+function addKeys(n){
+  const g=Math.min(n, Math.max(0, MAX_KEYS-state.keys));
+  state.keys+=g; state.keysEarned+=g;
+  return g;
+}
 
 const STRUCTURES = [
   { name:'Membrana plasmática',             fn:'Controla qué sustancias entran y salen de la célula' },
@@ -449,7 +457,7 @@ function awardCatchKeys(){
   let earned=0;
   if(state.score>=KEYS_2) earned=2;
   else if(state.score>=KEYS_1) earned=1;
-  state.keys+=earned; state.keysEarned+=earned; state.keysBy.catch+=earned;
+  earned=addKeys(earned); state.keysBy.catch+=earned;
   updateHudCount();
   if(earned>0) sfx('key');
   $('#lr-title').textContent='¡Terminaron los 5 niveles!';
@@ -585,7 +593,7 @@ function verifyCells(){
   let keyMsg='';
   if(ok && !state.cellKey[kind]){
     if(state.cellErr[kind]<=1){
-      state.cellKey[kind]=true; state.keys+=1; state.keysEarned+=1;
+      state.cellKey[kind]=true; addKeys(1);
       updateHudCount(); sfx('key');
       keyMsg=' 🔑 ¡Ganaste la llave de esta célula!';
     }else{
@@ -607,7 +615,7 @@ function verifyAllCells(){
     if(kind==='animal') state.animalOk=ok; else state.plantOk=ok;
     // si quedó bien armada y nunca se verificó, la llave se gana igual
     if(ok && !state.cellKey[kind] && state.cellErr[kind]<=1){
-      state.cellKey[kind]=true; state.keys+=1; state.keysEarned+=1; awarded=true;
+      state.cellKey[kind]=true; if(addKeys(1)) awarded=true;
     }
   });
   state.cellsCompleted=(state.animalOk?1:0)+(state.plantOk?1:0);
@@ -749,7 +757,7 @@ function endRoulette(){
   const correctas = ROULETTE_SPINS - matchErrors;
   const earned = matchErrors===0 ? 2 : (matchErrors<=2 ? 1 : 0);
   matchKeysEarned = earned;
-  state.keys += earned; state.keysEarned += earned; state.keysBy.roulette+=earned;
+  earned=addKeys(earned); state.keysBy.roulette+=earned;
   state.rouCorrectTotal += correctas;
   updateHudCount(); if(earned>0) sfx('key');
   const doorsBtn=$('#btn-to-doors');
@@ -866,15 +874,16 @@ function finishGame(){
   const secs=Math.round((state.endTime-state.startTime)/1000);
   const mm=Math.floor(secs/60), ss=secs%60;
   const cellDesc=k=>`${state.cellErr[k]} error${state.cellErr[k]===1?'':'es'} → ${state.cellKey[k]?'1 llave 🔑':'sin llave'}`;
+  const errS=n=>`${n} error${n===1?'':'es'}`;
   $('#final-summary').innerHTML=`
     <img src="${state.avatar.img}" alt="${state.avatar.label}">
     <h3>${state.nombre} ${state.apellido} — Sección ${state.seccion}</h3>
     <table>
       <tr><td>Partidas jugadas</td><td>${state.doorsRound}</td></tr>
-      <tr><td>Canastas</td><td>${state.totalCaught} aciertos · ${state.decoyErrors} errores · puntaje ${state.score} → ${state.keysBy.catch} llave${state.keysBy.catch===1?'':'s'} 🔑</td></tr>
+      <tr><td>Canastas</td><td>${state.totalCaught} aciertos · ${errS(state.decoyErrors)} · puntaje ${state.score} → ${state.keysBy.catch} llave${state.keysBy.catch===1?'':'s'} 🔑</td></tr>
       <tr><td>Célula animal</td><td>${state.animalOk?'correcta':'incompleta'} · ${cellDesc('animal')}</td></tr>
       <tr><td>Célula vegetal</td><td>${state.plantOk?'correcta':'incompleta'} · ${cellDesc('plant')}</td></tr>
-      <tr><td>Ruleta</td><td>${state.rouCorrectTotal} aciertos · ${state.matchErrorsTotal} errores → ${state.keysBy.roulette} llave${state.keysBy.roulette===1?'':'s'} 🔑</td></tr>
+      <tr><td>Ruleta</td><td>${state.rouCorrectTotal} aciertos · ${errS(state.matchErrorsTotal)} → ${state.keysBy.roulette} llave${state.keysBy.roulette===1?'':'s'} 🔑</td></tr>
       <tr><td>Llaves totales</td><td>${state.keysEarned}</td></tr>
       <tr><td>Puertas abiertas</td><td>${state.doorsTried}</td></tr>
       <tr><td>Tiempo total</td><td>${mm}m ${ss}s</td></tr>
@@ -885,16 +894,17 @@ function finishGame(){
 function generatePDF(){
   const secs=state.endTime?Math.round((state.endTime-state.startTime)/1000):0;
   const mm=Math.floor(secs/60), ss=secs%60;
-  const cellRow=k=>`${(k==='animal'?state.animalOk:state.plantOk)?'correcta':'incompleta'} · ${state.cellErr[k]} error${state.cellErr[k]===1?'':'es'} → ${state.cellKey[k]?1:0} llave`;
+  const errTxt=n=>`${n} error${n===1?'':'es'}`;
+  const cellRow=k=>`${(k==='animal'?state.animalOk:state.plantOk)?'correcta':'incompleta'} · ${errTxt(state.cellErr[k])} · ${state.cellKey[k]?'ganó 1 llave':'sin llave'}`;
   const rows=[
     ['Nombre', `${state.nombre} ${state.apellido}`],
     ['Sección', state.seccion],
     ['Fecha', new Date().toLocaleString('es')],
     ['Partidas jugadas', String(state.doorsRound)],
-    ['Canastas', `${state.totalCaught} aciertos · ${state.decoyErrors} errores · puntaje ${state.score} → ${state.keysBy.catch} llave(s)`],
+    ['Canastas', `${state.totalCaught} aciertos · ${errTxt(state.decoyErrors)} · puntaje ${state.score} · ${state.keysBy.catch} llave(s) ganada(s)`],
     ['Célula animal', cellRow('animal')],
     ['Célula vegetal', cellRow('plant')],
-    ['Ruleta', `${state.rouCorrectTotal} aciertos de ${state.matchRounds*ROULETTE_SPINS} · ${state.matchErrorsTotal} errores → ${state.keysBy.roulette} llave(s)`],
+    ['Ruleta', `${state.rouCorrectTotal} aciertos de ${state.matchRounds*ROULETTE_SPINS} · ${errTxt(state.matchErrorsTotal)} · ${state.keysBy.roulette} llave(s) ganada(s)`],
     ['Llaves totales', String(state.keysEarned)],
     ['Puertas abiertas', String(state.doorsTried)],
     ['Tiempo total', `${mm}m ${ss}s`],
@@ -904,12 +914,12 @@ function generatePDF(){
     const doc=new jsPDF();
     let y=32;
     if(logoData){
-      const lw=92, lh=lw*logoH/logoW;
-      doc.addImage(logoData,'PNG',(210-lw)/2,8,lw,lh);
+      const lw=70, lh=lw*logoH/logoW;
+      doc.addImage(logoData,'PNG',14,10,lw,lh);
       doc.setFontSize(14); doc.setTextColor(91,63,176);
-      doc.text('Reporte del estudiante', 105, 8+lh+9, {align:'center'});
+      doc.text('Reporte del estudiante', 105, 10+lh+9, {align:'center'});
       doc.setFontSize(11); doc.setTextColor(60,60,60);
-      y=8+lh+18;
+      y=10+lh+18;
     }else{
       doc.setFontSize(20); doc.setTextColor(91,63,176);
       doc.text('ESCAPE CELULAR — Reporte del estudiante', 14, 18);
@@ -917,7 +927,7 @@ function generatePDF(){
     }
     rows.forEach(([k,v])=>{
       doc.setFont(undefined,'bold'); doc.text(k+':', 14, y);
-      doc.setFont(undefined,'normal'); doc.text(String(v), 95, y);
+      doc.setFont(undefined,'normal'); doc.text(String(v), 80, y, {maxWidth:118});
       y+=8;
     });
     // avatar
@@ -927,7 +937,7 @@ function generatePDF(){
         try{
           const cv=document.createElement('canvas'); cv.width=cv.height=120;
           cv.getContext('2d').drawImage(img,0,0,120,120);
-          doc.addImage(cv.toDataURL('image/png'),'PNG',163,8,36,36);
+          doc.addImage(cv.toDataURL('image/png'),'PNG',160,10,36,36);
         }catch(e){}
         doc.save(`resultados_${state.nombre}_${state.apellido}.pdf`);
       };
