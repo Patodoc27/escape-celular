@@ -755,9 +755,9 @@ function endRoulette(){
   state.matchRounds++;
   // llaves al final: 7 aciertos → 2 llaves · 1-2 errores → 1 llave · 3+ → ninguna
   const correctas = ROULETTE_SPINS - matchErrors;
-  const earned = matchErrors===0 ? 2 : (matchErrors<=2 ? 1 : 0);
-  matchKeysEarned = earned;
-  earned=addKeys(earned); state.keysBy.roulette+=earned;
+  const tier = matchErrors===0 ? 2 : (matchErrors<=2 ? 1 : 0);
+  matchKeysEarned = tier;
+  const earned=addKeys(tier); state.keysBy.roulette+=earned;
   state.rouCorrectTotal += correctas;
   updateHudCount(); if(earned>0) sfx('key');
   const doorsBtn=$('#btn-to-doors');
