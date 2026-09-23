@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="assets/logo.png">
-<link rel="stylesheet" href="style.css?v=11">
+<link rel="stylesheet" href="style.css?v=14">
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 </head>
 <body>
@@ -120,13 +120,14 @@
   <section id="screen-build" class="screen">
     <div class="card wide build-card">
       <h2>🔬 Armá las células</h2>
-      <p class="subtitle">Tocá una estructura de tu canasta y después el recuadro donde va. Si te falta alguna, podés volver a recolectar.</p>
+      <p class="subtitle">Tocá una estructura de tu canasta y después el circulito al que apunta su flecha. Si te falta alguna, podés volver a recolectar.</p>
       <div class="match-score">🔑 Llaves: <b class="js-keys">0</b></div>
       <div class="build-wrap">
         <div class="diagram-panel">
           <h3 id="cell-title" class="cell-title">Célula eucariota animal</h3>
           <div id="cell-diagram" class="cell-diagram">
-            <img id="cell-diagram-img" src="assets/celula_animal.png" alt="Célula">
+            <div id="cell-img-wrap"><img id="cell-diagram-img" src="assets/celula_animal.png" alt="Célula"></div>
+            <svg id="cell-lines"></svg>
           </div>
           <p id="msg-cell" class="cell-msg"></p>
         </div>
@@ -205,6 +206,6 @@
   <div id="print-report" class="print-only"></div>
 
 </div>
-<script src="game.js?v=11"></script>
+<script src="game.js?v=14"></script>
 </body>
 </html>

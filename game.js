@@ -77,33 +77,35 @@ const ALL_STRUCT_IDS = [...ORGANELLES.map(o=>o.id), ...Object.keys(NONORG)];
 
 /* Recuadros sobre las flechas de cada diagrama (x,y en % de la imagen).
    Si una estructura tiene varias flechas, una sola ficha las completa todas. */
+/* x,y = punto de la estructura en la imagen (%); los circulitos se
+   ubican solos apenas fuera del borde, en orden angular (sin cruces) */
 const CELL_BOXES = {
   animal: [
-    { id:'membrana',      x:76,   y:10 },
-    { id:'citoesqueleto', x:42,   y:17 },
-    { id:'citoplasma',    x:16,   y:26 },
-    { id:'rel',           x:20,   y:40 },
-    { id:'rer',           x:65,   y:26 },
-    { id:'nucleo',        x:50,   y:44 },
-    { id:'mitocondrias',  x:17,   y:57,  label:'Mitocondria' },
-    { id:'golgi',         x:78,   y:58 },
-    { id:'centriolos',    x:62,   y:70 },
-    { id:'ribosomas',     x:28,   y:72 },
-    { id:'lisosomas',     x:80,   y:76,  label:'Lisosoma'    },
+    { id:'membrana',      x:88,   y:11,  lx:88, ly:6  },
+    { id:'citoesqueleto', x:44,   y:24,  lx:30, ly:5  },
+    { id:'citoplasma',    x:15,   y:78,  lx:6,  ly:16 },
+    { id:'rel',           x:22,   y:38,  lx:5,  ly:40 },
+    { id:'rer',           x:63,   y:31,  lx:60, ly:5  },
+    { id:'nucleo',        x:56,   y:39,  lx:50, ly:94 },
+    { id:'mitocondrias',  x:17,   y:62,  lx:5,  ly:60,  label:'Mitocondria' },
+    { id:'golgi',         x:75,   y:58,  lx:94, ly:55 },
+    { id:'centriolos',    x:53,   y:71,  lx:76, ly:94 },
+    { id:'ribosomas',     x:44,   y:86,  lx:24, ly:94 },
+    { id:'lisosomas',     x:70,   y:77,  lx:94, ly:74,  label:'Lisosoma'    },
   ],
   plant: [
-    { id:'citoplasma',    x:36,   y:19 },
-    { id:'membrana',      x:76,   y:10 },
-    { id:'rer',           x:60,   y:25 },
-    { id:'cloroplastos',  x:26,   y:30,  label:'Cloroplasto' },
-    { id:'nucleo',        x:86,   y:37 },
-    { id:'mitocondrias',  x:16,   y:46,  label:'Mitocondria' },
-    { id:'pared',         x:10,   y:58 },
-    { id:'rel',           x:88,   y:54 },
-    { id:'vacuola',       x:50,   y:55 },
-    { id:'ribosomas',     x:29,   y:82 },
-    { id:'golgi',         x:87,   y:67 },
-    { id:'citoesqueleto', x:70,   y:50 },
+    { id:'citoplasma',    x:24,   y:20,  lx:26, ly:5  },
+    { id:'membrana',      x:86,   y:12,  lx:88, ly:6  },
+    { id:'rer',           x:48,   y:28,  lx:66, ly:5  },
+    { id:'cloroplastos',  x:26,   y:28,  lx:6,  ly:18,  label:'Cloroplasto' },
+    { id:'nucleo',        x:81,   y:33,  lx:94, ly:36 },
+    { id:'mitocondrias',  x:18,   y:42,  lx:5,  ly:44,  label:'Mitocondria' },
+    { id:'pared',         x:11,   y:56,  lx:5,  ly:64 },
+    { id:'rel',           x:77,   y:54,  lx:95, ly:54 },
+    { id:'vacuola',       x:42,   y:55,  lx:50, ly:94 },
+    { id:'ribosomas',     x:56,   y:87,  lx:24, ly:94 },
+    { id:'golgi',         x:76,   y:68,  lx:94, ly:74 },
+    { id:'citoesqueleto', x:40,   y:72.5,lx:74, ly:94 },
   ],
 };
 const CELL_REQ = {
@@ -484,24 +486,95 @@ function updateBuildButtons(){
   $('#btn-to-match').classList.toggle('hidden', animal);
 }
 
+let dzEls=[];
+
 function renderDiagram(){
   const kind=state.cellStage;
   $('#cell-title').textContent = kind==='animal' ? 'Célula eucariota animal' : 'Célula eucariota vegetal';
-  $('#cell-diagram-img').src = `assets/celula_${kind}.png`;
+  const img=$('#cell-diagram-img');
+  img.onload=()=>layoutDiagram();
+  img.src = `assets/celula_${kind}.png`;
   const d=$('#cell-diagram');
   d.querySelectorAll('.dropbox').forEach(e=>e.remove());
+  dzEls=[];
   CELL_BOXES[kind].forEach((box,idx)=>{
     const s=document.createElement('div');
-    s.className='dropbox'; s.style.left=box.x+'%'; s.style.top=box.y+'%';
+    s.className='dropbox';
     const placed=state.placements[kind][idx];
     if(placed){
       s.classList.add('filled');
-      s.innerHTML=`<span>${box.label||orgName(placed)}</span>`;
+      s.innerHTML=`<div class="db-circle"><span class="db-q">✓</span></div><div class="db-tag">${box.label||orgName(placed)}</div>`;
     }else{
-      s.innerHTML='<span class="db-q">?</span>';
+      s.innerHTML='<div class="db-circle"><span class="db-q">?</span></div>';
     }
     s.onclick=()=>onBoxClick(kind, idx);
     d.appendChild(s);
+    dzEls[idx]=s;
+  });
+  if(img.complete) layoutDiagram();
+}
+
+/* Circulitos apenas fuera del borde de la imagen, en el mismo orden angular
+   que las estructuras → flechas cortas que nunca se cruzan */
+function layoutDiagram(){
+  const kind=state.cellStage;
+  const svg=$('#cell-lines'), img=$('#cell-diagram-img'), cont=$('#cell-diagram');
+  if(!svg || !img.naturalWidth || !dzEls.length) return;
+  const cr=cont.getBoundingClientRect(), ir=img.getBoundingClientRect();
+  const cx=ir.left-cr.left+ir.width/2, cy=ir.top-cr.top+ir.height/2;
+  const items=CELL_BOXES[kind].map((box,idx)=>({
+    idx,
+    ax: ir.left-cr.left + box.x/100*ir.width,
+    ay: ir.top -cr.top  + box.y/100*ir.height,
+    ang: 0, circAng:0,
+  }));
+  items.forEach(it=>{ it.ang=Math.atan2(it.ay-cy, it.ax-cx); });
+  items.sort((a,b)=>a.ang-b.ang);
+  /* la cadena de circulitos arranca justo después del hueco angular más
+     grande entre estructuras → cada circulito queda del mismo lado que su
+     estructura y las flechas nunca se cruzan ni se estiran */
+  let start=0, best=-1;
+  items.forEach((it,i)=>{
+    const nxt=items[(i+1)%items.length].ang + (i===items.length-1 ? 2*Math.PI : 0);
+    if(nxt-it.ang>best){ best=nxt-it.ang; start=(i+1)%items.length; }
+  });
+  const ord=[...items.slice(start), ...items.slice(0,start)];
+  const minSep=Math.min(26, 300/items.length)*Math.PI/180;
+  let prev=null;
+  ord.forEach(it=>{
+    let a=it.ang;
+    if(prev!==null){
+      if(a<prev) a+=2*Math.PI;
+      it.circAng=Math.max(a, prev+minSep);
+    }else it.circAng=a;
+    prev=it.circAng;
+  });
+  const rx=ir.width/2+30, ry=ir.height/2+30;
+  svg.setAttribute('viewBox',`0 0 ${cr.width} ${cr.height}`);
+  svg.innerHTML='';
+  const ns='http://www.w3.org/2000/svg';
+  items.forEach(it=>{
+    let px=cx+rx*Math.cos(it.circAng), py=cy+ry*Math.sin(it.circAng);
+    px=Math.max(28,Math.min(cr.width -28,px));
+    py=Math.max(28,Math.min(cr.height-28,py));
+    const dz=dzEls[it.idx];
+    dz.style.left=px+'px'; dz.style.top=py+'px';
+    dz.classList.toggle('tag-above', py>cy+ir.height*0.2);
+    const dx=px-it.ax, dy=py-it.ay, len=Math.hypot(dx,dy)||1;
+    const ux=dx/len, uy=dy/len;
+    const ex=px-ux*24, ey=py-uy*24;
+    const ox=-uy, oy=ux;
+    const line=document.createElementNS(ns,'line');
+    line.setAttribute('x1',it.ax); line.setAttribute('y1',it.ay);
+    line.setAttribute('x2',ex); line.setAttribute('y2',ey);
+    line.setAttribute('class','leader');
+    const dot=document.createElementNS(ns,'circle');
+    dot.setAttribute('cx',it.ax); dot.setAttribute('cy',it.ay); dot.setAttribute('r',4.5);
+    dot.setAttribute('class','leader-dot');
+    const arr=document.createElementNS(ns,'polygon');
+    arr.setAttribute('points',`${ex+ux*9},${ey+uy*9} ${ex-ux*2+ox*5},${ey-uy*2+oy*5} ${ex-ux*2-ox*5},${ey-uy*2-oy*5}`);
+    arr.setAttribute('class','leader-arrow');
+    svg.appendChild(line); svg.appendChild(dot); svg.appendChild(arr);
   });
 }
 
@@ -1010,6 +1083,7 @@ function bindControls(){
   $('#btn-lr-continue').onclick=enterBuild;
   $('#btn-pdf').onclick=generatePDF;
   $('#btn-restart').onclick=()=>location.reload();
+  window.addEventListener('resize',()=>{ if($('#screen-build').classList.contains('active')) layoutDiagram(); });
 
   // música de fondo (arranca con el primer toque, se puede silenciar)
   const bgm=$('#bgm'); let musicOn=true;
