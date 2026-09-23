@@ -801,9 +801,10 @@ function renderDoors(){
     const d=document.createElement('button');
     d.className='door'+(i%2?' flip':'')+(opened?' open':'')+(!opened && state.keys<=0?' locked':'');
     d.style.animationDelay=(i*35)+'ms';
-    const showExit=state.exitDoor!==null && isExit;
+    // la salida solo se revela al abrir la puerta: todas las cerradas se ven iguales
+    const showExit=opened && state.exitDoor!==null && isExit;
     d.innerHTML=`
-      <div class="door-inside${showExit?' exit':''}">
+      <div class="door-inside">
         <img class="in-avatar" src="assets/${showExit?'salida':'no_salida'}.png" alt="${showExit?'Salida':'Esta no es la salida'}">
       </div>
       <div class="door-panel"><span class="door-num">${i+1}</span><span class="door-knob"></span></div>`;
@@ -840,6 +841,10 @@ function openDoor(i,el){
   el.disabled=true;
   setTimeout(()=>el.classList.add('open'),120);   // pequeño "tironeo" antes de abrir
   if(state.exitDoor!==null && i===state.exitDoor){
+    const inside=el.querySelector('.door-inside');
+    inside.classList.add('exit');
+    const av=inside.querySelector('.in-avatar');
+    av.src='assets/salida.png'; av.alt='Salida';
     setTimeout(()=>{ sfx('exit'); confettiBurst(); },350);
     setTimeout(finishGame,2000);
     return;
