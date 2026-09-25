@@ -83,14 +83,14 @@ const CELL_BOXES = {
   animal: [
     { id:'membrana',      x:88,   y:11,  lx:88, ly:6  },
     { id:'citoesqueleto', x:44,   y:24,  lx:30, ly:5  },
-    { id:'citoplasma',    x:15,   y:78,  lx:6,  ly:16 },
+    { id:'citoplasma',    x:45.5, y:83.5,lx:6,  ly:16 },
     { id:'rel',           x:22,   y:38,  lx:5,  ly:40 },
     { id:'rer',           x:63,   y:31,  lx:60, ly:5  },
     { id:'nucleo',        x:56,   y:39,  lx:50, ly:94 },
     { id:'mitocondrias',  x:17,   y:62,  lx:5,  ly:60,  label:'Mitocondria' },
     { id:'golgi',         x:75,   y:58,  lx:94, ly:55 },
     { id:'centriolos',    x:53,   y:71,  lx:76, ly:94 },
-    { id:'ribosomas',     x:44,   y:86,  lx:24, ly:94 },
+    { id:'ribosomas',     x:33,   y:83,  lx:24, ly:94 },
     { id:'lisosomas',     x:70,   y:77,  lx:94, ly:74,  label:'Lisosoma'    },
   ],
   plant: [
@@ -105,7 +105,7 @@ const CELL_BOXES = {
     { id:'vacuola',       x:42,   y:55,  lx:50, ly:94 },
     { id:'ribosomas',     x:56,   y:87,  lx:24, ly:94 },
     { id:'golgi',         x:76,   y:68,  lx:94, ly:74 },
-    { id:'citoesqueleto', x:40,   y:72.5,lx:74, ly:94 },
+    { id:'citoesqueleto', x:38.5, y:75,  lx:74, ly:94 },
   ],
 };
 const CELL_REQ = {
