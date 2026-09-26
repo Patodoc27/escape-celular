@@ -90,7 +90,7 @@ const CELL_BOXES = {
     { id:'mitocondrias',  x:17,   y:62,  lx:5,  ly:60,  label:'Mitocondria' },
     { id:'golgi',         x:75,   y:58,  lx:94, ly:55 },
     { id:'centriolos',    x:53,   y:71,  lx:76, ly:94 },
-    { id:'ribosomas',     x:35,   y:56,  lx:24, ly:94 },
+    { id:'ribosomas',     x:23,   y:72.5,lx:24, ly:94 },
     { id:'lisosomas',     x:70,   y:77,  lx:94, ly:74,  label:'Lisosoma'    },
   ],
   plant: [
