@@ -135,7 +135,7 @@ const state = {
   keys:0, exitDoor:null, doorsOpened:[], doorsTried:0, keysEarned:0, doorsRound:0,
   cellErr:{animal:0,plant:0}, cellKey:{animal:false,plant:false},
   countedWrong:{animal:{},plant:{}}, extraFor:'animal',
-  keysBy:{catch:0,roulette:0}, rouCorrectTotal:0, cellStage:'animal',
+  keysBy:{catch:0,roulette:0,bonus:0}, rouCorrectTotal:0, cellStage:'animal',
   startTime:null, endTime:null,
 };
 
@@ -168,6 +168,7 @@ function sfx(name){
     case 'key':   [660,880,1320].forEach((f,i)=>tone(f,.12,'triangle',.13,i*.09)); break;
     case 'door':  tone(170,.35,'triangle',.11,0,80); tone(95,.3,'sine',.09,.05); break;
     case 'exit':  [523,659,784,1046,1318].forEach((f,i)=>tone(f,.17,'triangle',.15,i*.11)); break;
+    case 'plip':  tone(920,.05,'square',.06); break;
   }
 }
 
@@ -836,8 +837,80 @@ function endRoulette(){
   const doorsBtn=$('#btn-to-doors');
   doorsBtn.classList.remove('hidden');
   doorsBtn.textContent = earned>0
-    ? `🚪 Ir a las puertas (${correctas}/7 · ¡ganaste ${earned} llave${earned>1?'s':''}! Tenés ${state.keys})`
-    : `🚪 Ir a las puertas (${correctas}/7 · tenés ${state.keys} llave${state.keys===1?'':'s'})`;
+    ? `🪙 ¡Bonus! Buscá las 3 mitocondrias (${correctas}/7 · ¡ganaste ${earned} llave${earned>1?'s':''}! Tenés ${state.keys})`
+    : `🪙 ¡Bonus! Buscá las 3 mitocondrias (${correctas}/7 · tenés ${state.keys} llave${state.keys===1?'':'s'})`;
+}
+
+/* ================= BONUS: monedas ================= */
+/* panel estilo pick-a-coin: 15 monedas, 5 organelas x3 — gana 1 llave quien
+   junta las 3 mitocondrias antes de completar 3 iguales de otra organela */
+const BONUS_TYPES=[
+  {id:'mitocondrias', name:'Mitocondria', plural:'las mitocondrias', fnName:'Mitocondrias',                    img:'assets/mg_mito.png'},
+  {id:'nucleo',       name:'Núcleo',      plural:'el núcleo',        fnName:'Núcleo',                          img:'assets/mg_nucleo.png'},
+  {id:'golgi',        name:'Golgi',       plural:'el aparato de Golgi', fnName:'Aparato de Golgi',              img:'assets/mg_golgi.png'},
+  {id:'rel',          name:'R. liso',     plural:'el retículo endoplasmático liso', fnName:'Retículo endoplasmático liso', img:'assets/mg_rel.png'},
+  {id:'cloroplastos', name:'Cloroplasto', plural:'los cloroplastos', fnName:'Cloroplastos',                    img:'assets/mg_cloro.png'},
+];
+function bonusFn(t){ const s=STRUCTURES.find(x=>x.name===t.fnName); return s ? s.fn : ''; }
+let bonusDeck=[], bonusCounts={}, bonusOver=false;
+function enterBonus(){
+  show('screen-bonus');
+  bonusDeck=shuffle(BONUS_TYPES.flatMap(t=>[t,t,t]));
+  bonusCounts={}; BONUS_TYPES.forEach(t=>bonusCounts[t.id]=0);
+  bonusOver=false;
+  $('#bonus-msg').textContent=''; $('#bonus-msg').className='rou-msg';
+  $('#btn-bonus-doors').classList.add('hidden');
+  renderBonus();
+  updateKeysHud();
+}
+function renderBonus(){
+  const g=$('#bonus-grid'); g.innerHTML='';
+  bonusDeck.forEach((t,i)=>{
+    const c=document.createElement('button');
+    c.className='bonus-coin';
+    c.innerHTML='<span class="bc-q">?</span>';
+    c.onclick=()=>flipCoin(i,c);
+    g.appendChild(c);
+  });
+  $('#bonus-info').innerHTML=BONUS_TYPES.map(t=>
+    `<span class="b-chip" id="bchip-${t.id}"><img src="${t.img}" alt="${t.name}"><b id="bct-${t.id}">0</b>/3</span>`).join('');
+}
+function flipCoin(i,c){
+  if(bonusOver || c.classList.contains('open')) return;
+  const t=bonusDeck[i];
+  c.classList.add('open'); c.innerHTML=`<img src="${t.img}" alt="${t.name}">`;
+  bonusCounts[t.id]++;
+  $('#bct-'+t.id).textContent=bonusCounts[t.id];
+  $('#bchip-'+t.id).classList.add('lit');
+  if(t.id==='mitocondrias'){ c.classList.add('is-mito'); sfx('catch'); }
+  else sfx('plip');
+  if(bonusCounts[t.id]>=3){
+    bonusOver=true;
+    const msg=$('#bonus-msg');
+    if(t.id==='mitocondrias'){
+      const earned=addKeys(1); state.keysBy.bonus+=earned;
+      updateKeysHud();
+      msg.textContent = earned
+        ? '⚡ ¡3 mitocondrias! Liberan la energía de los nutrientes: ¡ganaste 1 llave extra!'
+        : '⚡ ¡3 mitocondrias! (Ya tenés el máximo de llaves)';
+      msg.className='rou-msg ok';
+      sfx('key'); confettiBurst(28);
+    }else{
+      const fn=bonusFn(t);
+      msg.innerHTML=`😔 Lo siento: <b>${t.plural}</b> ${fn.charAt(0).toLowerCase()+fn.slice(1)}.<br><b>En esta oportunidad no tenés la llave extra.</b>`;
+      msg.className='rou-msg bad';
+      sfx('wrong');
+    }
+    // revela las que quedaban
+    $$('.bonus-coin:not(.open)').forEach((cc,j)=>{
+      setTimeout(()=>{
+        const tt=bonusDeck[+Array.from(cc.parentNode.children).indexOf(cc)];
+        cc.classList.add('open','ghost');
+        cc.innerHTML=`<img src="${tt.img}" alt="${tt.name}">`;
+      },300+j*60);
+    });
+    setTimeout(()=>$('#btn-bonus-doors').classList.remove('hidden'), 300+$$('.bonus-coin:not(.open)').length*60);
+  }
 }
 
 /* ================= PUERTAS ================= */
@@ -962,6 +1035,7 @@ function finishGame(){
       <tr><td>Célula animal</td><td>${state.animalOk?'correcta':'incompleta'} · ${cellDesc('animal')}</td></tr>
       <tr><td>Célula vegetal</td><td>${state.plantOk?'correcta':'incompleta'} · ${cellDesc('plant')}</td></tr>
       <tr><td>Ruleta</td><td>${state.rouCorrectTotal} aciertos · ${errS(state.matchErrorsTotal)} → ${state.keysBy.roulette} llave${state.keysBy.roulette===1?'':'s'} 🔑</td></tr>
+      <tr><td>Bonus</td><td>${state.keysBy.bonus} llave${state.keysBy.bonus===1?'':'s'} 🔑</td></tr>
       <tr><td>Llaves totales</td><td>${state.keysEarned}</td></tr>
       <tr><td>Puertas abiertas</td><td>${state.doorsTried}</td></tr>
       <tr><td>Tiempo total</td><td>${mm}m ${ss}s</td></tr>
@@ -983,6 +1057,7 @@ function generatePDF(){
     ['Célula animal', cellRow('animal')],
     ['Célula vegetal', cellRow('plant')],
     ['Ruleta', `${state.rouCorrectTotal} aciertos de ${state.matchRounds*ROULETTE_SPINS} · ${errTxt(state.matchErrorsTotal)} · ${state.keysBy.roulette} llave(s) ganada(s)`],
+    ['Bonus', `${state.keysBy.bonus} llave(s) ganada(s)`],
     ['Llaves totales', String(state.keysEarned)],
     ['Puertas abiertas', String(state.doorsTried)],
     ['Tiempo total', `${mm}m ${ss}s`],
@@ -1078,7 +1153,8 @@ function bindControls(){
   $('#btn-spin').onclick=spinRoulette;
   $('#btn-rou-check').onclick=checkRouAnswer;
   $('#rou-input').addEventListener('keydown',e=>{ if(e.key==='Enter') checkRouAnswer(); });
-  $('#btn-to-doors').onclick=enterDoors;
+  $('#btn-to-doors').onclick=enterBonus;
+  $('#btn-bonus-doors').onclick=enterDoors;
   $('#btn-back-keys').onclick=replayForKeys;
   $('#btn-lr-continue').onclick=enterBuild;
   $('#btn-pdf').onclick=generatePDF;

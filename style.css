@@ -137,6 +137,14 @@ h3{ color:var(--ink); }
 .rules-list{ list-style:none; margin:14px 0; }
 .rules-list li{ margin:10px 0; font-size:1.02rem; line-height:1.35; }
 #screen-rules{ justify-content:center; }
+#screen-rules .title-logo{ width:min(280px, 62%); margin:-6px auto -8px; }
+#screen-rules .subtitle{ margin:0 0 6px; }
+#screen-rules .rules-hero{ padding:10px 24px 14px; }
+#screen-rules .rules-grid{ gap:12px; margin:8px 0 6px; }
+#screen-rules .rule-tile{ padding:10px 12px; }
+#screen-rules .rule-icon{ font-size:2rem; margin-bottom:4px; }
+#screen-rules .credits{ margin:8px 0 0; }
+#screen-rules .mascot{ width:270px; }
 .rules-layout{
   display:flex; align-items:center; gap:6px; width:100%;
   max-width:1280px; justify-content:center; margin:auto 0;
@@ -491,6 +499,25 @@ h3{ color:var(--ink); }
 .final-summary table{ margin:10px auto 0; border-collapse:collapse; font-size:.98rem; }
 .final-summary td{ padding:4px 12px; border-bottom:1px solid #e0dccc; text-align:left; }
 .final-summary td:first-child{ font-weight:700; }
+
+/* ---------- bonus monedas ---------- */
+.bonus-info{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:6px 0 4px; }
+.b-chip{ display:inline-flex; align-items:center; gap:5px; background:#fff; border:2px solid #d9d3b8; border-radius:999px; padding:3px 10px 3px 4px; font-size:.8rem; font-weight:700; color:#7a6f4a; opacity:.55; transition:all .25s; }
+.b-chip img{ width:26px; height:26px; border-radius:50%; }
+.b-chip.lit{ opacity:1; border-color:var(--purple); color:#4a3f1f; }
+.bonus-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:14px; max-width:720px; margin:10px auto 4px; }
+.bonus-coin{ aspect-ratio:1; border-radius:50%; border:none; cursor:pointer; padding:0;
+  background:radial-gradient(circle at 32% 28%, #fff3b0 0%, #ffd93b 45%, #f0a500 78%, #c47f00 100%);
+  box-shadow:0 5px 0 #8a5d00, 0 8px 14px rgba(0,0,0,.28);
+  display:flex; align-items:center; justify-content:center; transition:transform .18s; }
+.bonus-coin .bc-q{ font-size:clamp(1.4rem,3.2vw,2.1rem); font-weight:900; color:#8a5d00; text-shadow:0 1px 0 #fff6c8; }
+.bonus-coin:hover:not(.open){ transform:translateY(-5px) scale(1.04); }
+.bonus-coin.open{ background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.25); cursor:default; padding:5px; animation:coinPop .35s; }
+.bonus-coin.open img{ width:100%; height:100%; object-fit:contain; }
+.bonus-coin.is-mito{ outline:4px solid #00c853; outline-offset:2px; box-shadow:0 0 18px #00c853; }
+.bonus-coin.ghost{ opacity:.5; }
+@keyframes coinPop{ 0%{ transform:scale(.6) } 60%{ transform:scale(1.12) } 100%{ transform:scale(1) } }
+@media (max-width:760px){ .bonus-grid{ grid-template-columns:repeat(5,1fr); gap:8px; } }
 
 /* ---------- print ---------- */
 .print-only{ display:none; }
