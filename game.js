@@ -504,7 +504,7 @@ function renderDiagram(){
     const placed=state.placements[kind][idx];
     if(placed){
       s.classList.add('filled');
-      s.innerHTML=`<div class="db-circle"><span class="db-q">✓</span></div><div class="db-tag">${box.label||orgName(placed)}</div>`;
+      s.innerHTML=`<div class="db-circle"><span class="db-q">✓</span></div><div class="db-tag">${orgName(placed)}</div>`;
     }else{
       s.innerHTML='<div class="db-circle"><span class="db-q">?</span></div>';
     }
@@ -789,6 +789,7 @@ function onRouletteStop(){
 }
 
 function checkRouAnswer(){
+  if($('#rou-card').classList.contains('answered')) return;   // evita doble Enter/doble clic
   const ans=normAns($('#rou-input').value);
   if(!ans || rouCur<0) return;
   const i=rouStructIdx[rouCur];
@@ -1014,7 +1015,7 @@ function replayForKeys(){
   state.cellsCompleted=0; state.animalOk=false; state.plantOk=false;
   state.cellErr={animal:0,plant:0}; state.cellKey={animal:false,plant:false};
   state.countedWrong={animal:{},plant:{}};
-  state.cellStage='animal'; state.extraFor='animal';
+  state.cellStage='animal'; state.extraFor='animal'; selectedChip=null;
   levelTargets=shuffle(CAT_KEYS);
   startCatchLevel(0);
 }
