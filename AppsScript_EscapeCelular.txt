@@ -1,0 +1,184 @@
+/* =========================================================
+   ESCAPE CELULAR — registro de partidas en Google Sheets
+   ---------------------------------------------------------
+   Pegar TODO este código en Extensiones > Apps Script.
+   Ver las instrucciones completas en INSTRUCCIONES_PLANILLA.txt
+   ========================================================= */
+
+const HOJA_PARTIDAS = 'partidas';
+const HOJA_RESUMEN  = 'resumen';
+
+/* Una fila por CADA VEZ que alguien juega: se crea al registrarse y se
+   va actualizando en cada etapa (misma sesión = misma fila, por su ID). */
+const CAB_PARTIDAS = ['Fecha','Nombre','Apellido','Sección','Etapa','Partidas','Puntaje','Llaves','Tiempo','Terminó','Código','ID'];
+/* Una fila por ESTUDIANTE (aunque escriba su nombre distinto cada vez). */
+const CAB_RESUMEN  = ['Nombre','Apellido','Sección','Sesiones','Escapó','Último código','Mejor puntaje','Máx. llaves','Tiempo total','Última vez'];
+
+/* ---------------- entrada ---------------- */
+function doPost(e) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const d = JSON.parse(e.postData.contents);
+    const libro = SpreadsheetApp.getActiveSpreadsheet();
+    const partidas = hoja_(libro, HOJA_PARTIDAS, CAB_PARTIDAS);
+
+    upsertPartida_(partidas, d);
+    actualizarResumen_(libro, partidas);
+    return salida_('ok');
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// para probar que la URL funciona: abrirla en el navegador muestra este mensaje
+function doGet() {
+  return salida_('Escape Celular: registro activo');
+}
+
+/* ---------------- partidas ----------------
+   La misma sesión de juego (mismo ID) actualiza SIEMPRE la misma fila:
+   así la Etapa avanza (Registrado → Niveles → … → ¡ESCAPÓ!) sin duplicar. */
+function upsertPartida_(hoja, d) {
+  const rid = String(d.rid || '');
+  const fila = [
+    new Date(),
+    String(d.nombre || ''), String(d.apellido || ''), String(d.seccion || ''),
+    String(d.etapa || ''), Number(d.partidas) || 0, Number(d.puntaje) || 0,
+    Number(d.llaves) || 0, fmtTiempo_(Number(d.tiempo_seg) || 0),
+    String(d.termino || 'No'), String(d.codigo || ''), rid
+  ];
+  if (rid) {
+    const filaExistente = buscarRid_(hoja, rid);
+    if (filaExistente > 0) {
+      // no pisa un ¡ESCAPÓ! con una etapa anterior (reintentos fuera de orden)
+      const etapaAnterior = String(hoja.getRange(filaExistente, 5).getValue());
+      if (etapaAnterior === '¡ESCAPÓ!' && d.etapa !== '¡ESCAPÓ!') return;
+      hoja.getRange(filaExistente, 1, 1, CAB_PARTIDAS.length).setValues([fila]);
+      return;
+    }
+  }
+  hoja.appendRow(fila);
+}
+
+function buscarRid_(hoja, rid) {
+  const ultima = hoja.getLastRow();
+  if (ultima < 2) return 0;
+  const desde = Math.max(2, ultima - 499);    // revisa las últimas 500 filas
+  const ids = hoja.getRange(desde, CAB_PARTIDAS.length, ultima - desde + 1, 1).getValues();
+  for (let i = ids.length - 1; i >= 0; i--) if (String(ids[i][0]) === rid) return desde + i;
+  return 0;
+}
+
+function fmtTiempo_(seg) {
+  seg = Math.round(seg);
+  const m = Math.floor(seg / 60), s = seg % 60;
+  return m + 'm ' + (s < 10 ? '0' : '') + s + 's';
+}
+function minTot_(seg) {
+  const m = Math.round(seg / 60);
+  return m >= 60 ? Math.floor(m / 60) + 'h ' + (m % 60) + 'm' : m + 'm';
+}
+
+function hoja_(libro, nombre, cabeceras) {
+  let h = libro.getSheetByName(nombre);
+  if (!h) h = libro.insertSheet(nombre);
+  if (h.getLastRow() === 0) {
+    h.getRange(1, 1, 1, cabeceras.length).setValues([cabeceras]).setFontWeight('bold');
+    h.setFrozenRows(1);
+  }
+  return h;
+}
+
+function salida_(txt) {
+  return ContentService.createTextOutput(txt).setMimeType(ContentService.MimeType.TEXT);
+}
+
+/* ---------------- normalización de nombres ----------------
+   Ignora mayúsculas, tildes y espacios dobles:
+   "EMMA  García", "emma garcia" y "Emma García" son la misma jugadora. */
+function norm_(s) {
+  return String(s || '').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\s+/g, ' ').trim();
+}
+function normSeccion_(s) { return norm_(s).replace(/[^a-z0-9]/g, ''); }   // "1° A" -> "1a"
+
+/* distancia de edición: detecta que "ema" y "emma" son la misma persona
+   (una letra de más, de menos o cambiada) */
+function dist_(a, b) {
+  const m = a.length, n = b.length;
+  if (Math.abs(m - n) > 2) return 99;
+  const d = [];
+  for (let i = 0; i <= m; i++) d[i] = [i];
+  for (let j = 0; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+  return d[m][n];
+}
+
+function mismoEstudiante_(x, y) {
+  if (x.sec !== y.sec) return false;                       // secciones distintas: nunca es la misma
+  if (x.clave === y.clave) return true;                    // nombre+apellido idénticos (normalizados)
+  return dist_(x.clave, y.clave) <= 1;                     // una letra de diferencia: misma persona
+}
+
+/* ---------------- resumen por estudiante ---------------- */
+function actualizarResumen_(libro, partidas) {
+  const resumen = hoja_(libro, HOJA_RESUMEN, CAB_RESUMEN);
+  if (resumen.getLastRow() > 1)
+    resumen.getRange(2, 1, resumen.getLastRow() - 1, CAB_RESUMEN.length).clearContent();
+
+  const ultima = partidas.getLastRow();
+  if (ultima < 2) return;
+  const filas = partidas.getRange(2, 1, ultima - 1, CAB_PARTIDAS.length).getValues();
+
+  const grupos = [];
+  for (const f of filas) {
+    const n = norm_(f[1]), a = norm_(f[2]), sec = normSeccion_(f[3]);
+    if (!n && !a) continue;
+    const yo = { sec, clave: n + ' ' + a };
+    let g = null;
+    for (const cand of grupos) {
+      if (mismoEstudiante_({ sec: cand.sec, clave: cand.clave }, yo)) { g = cand; break; }
+    }
+    if (!g) {
+      g = { sec, clave: yo.clave,
+            nomRaw: String(f[1]).trim(), apeRaw: String(f[2]).trim(), secRaw: String(f[3]).trim(),
+            sesiones: 0, escapes: 0, ultCodigo: '', maxPuntaje: 0, maxLlaves: 0,
+            tiempoSeg: 0, ultima: null };
+      grupos.push(g);
+    } else {
+      // si escribió el nombre más completo otra vez ("emma" sobre "ema"), se conserva la forma larga
+      if (norm_(f[1] + ' ' + f[2]).length > norm_(g.nomRaw + ' ' + g.apeRaw).length) {
+        g.nomRaw = String(f[1]).trim(); g.apeRaw = String(f[2]).trim();
+      }
+    }
+    g.sesiones++;
+    if (String(f[9]) === 'Sí') g.escapes++;
+    if (String(f[10])) g.ultCodigo = String(f[10]);
+    g.maxPuntaje = Math.max(g.maxPuntaje, Number(f[6]) || 0);
+    g.maxLlaves  = Math.max(g.maxLlaves,  Number(f[7]) || 0);
+    g.tiempoSeg += segDeTexto_(f[8]);
+    const fecha = f[0] instanceof Date ? f[0] : new Date(f[0]);
+    if (!g.ultima || fecha > g.ultima) { g.ultima = fecha; if (String(f[10])) g.ultCodigo = String(f[10]); }
+  }
+
+  grupos.sort((a, b) =>
+    a.secRaw.localeCompare(b.secRaw) ||
+    a.apeRaw.localeCompare(b.apeRaw) ||
+    a.nomRaw.localeCompare(b.nomRaw));
+
+  const filasR = grupos.map(g => [
+    g.nomRaw, g.apeRaw, g.secRaw,
+    g.sesiones, g.escapes, g.ultCodigo,
+    g.maxPuntaje, g.maxLlaves, minTot_(g.tiempoSeg), g.ultima
+  ]);
+  if (filasR.length) resumen.getRange(2, 1, filasR.length, CAB_RESUMEN.length).setValues(filasR);
+}
+
+function segDeTexto_(txt) {
+  const m = /(\d+)m\s*(\d+)s/.exec(String(txt || ''));
+  return m ? (+m[1]) * 60 + (+m[2]) : 0;
+}

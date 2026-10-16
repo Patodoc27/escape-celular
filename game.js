@@ -137,7 +137,53 @@ const state = {
   countedWrong:{animal:{},plant:{}}, extraFor:'animal',
   keysBy:{catch:0,roulette:0,bonus:0}, rouCorrectTotal:0, cellStage:'animal',
   startTime:null, endTime:null,
+  rid:'', codigo:'', lastEtapa:'',
 };
+
+/* ---------- registro oculto en Google Sheets ----------
+   La maestra pega su URL de Apps Script en SHEET_URL. El juego envía una
+   fila por sesión que se actualiza en cada etapa; el estudiante no ve nada. */
+const SHEET_URL = '';   // la maestra pega aquí su URL de Apps Script (termina en /exec)
+function genRid(){
+  return 'EC-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);
+}
+function genCodigo(){
+  const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789';   // sin 0/O/1/I/L para que no se confunda
+  let s=''; for(let i=0;i<6;i++) s+=A[Math.floor(Math.random()*A.length)];
+  return 'CEL-'+s;
+}
+function elapsedSeg(){ return state.startTime ? Math.round((Date.now()-state.startTime)/1000) : 0; }
+function logSheet(etapa){
+  if(!SHEET_URL) return;
+  state.lastEtapa=etapa;
+  const p={rid:state.rid, nombre:state.nombre, apellido:state.apellido, seccion:state.seccion,
+    etapa, partidas:state.doorsRound, puntaje:state.score, llaves:state.keysEarned,
+    tiempo_seg:elapsedSeg(), termino:state.codigo?'Sí':'No', codigo:state.codigo||''};
+  try{
+    fetch(SHEET_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(p)})
+      .catch(()=>queueSheet(p));
+  }catch(e){ queueSheet(p); }
+}
+/* si no hay internet en el momento del envío, queda en la PC y se reenvía
+   la próxima vez que se abra el juego */
+function queueSheet(p){
+  try{
+    const q=JSON.parse(localStorage.getItem('ec_pending')||'[]');
+    q.push(p); localStorage.setItem('ec_pending',JSON.stringify(q));
+  }catch(e){}
+}
+function flushSheetQueue(){
+  if(!SHEET_URL) return;
+  let q=[]; try{ q=JSON.parse(localStorage.getItem('ec_pending')||'[]'); }catch(e){}
+  if(!q.length) return;
+  localStorage.setItem('ec_pending','[]');
+  q.forEach(p=>{
+    try{
+      fetch(SHEET_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(p)})
+        .catch(()=>queueSheet(p));
+    }catch(e){ queueSheet(p); }
+  });
+}
 
 const $  = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
@@ -221,6 +267,7 @@ function initRegister(){
     if(!selectedAvatar){ err.textContent='Elige un avatar.'; return; }
     state.nombre=nombre; state.apellido=apellido; state.seccion=selectedSection;
     state.avatar=selectedAvatar; state.startTime=Date.now();
+    state.rid=genRid(); logSheet('Registrado');
     show('screen-countdown'); runCountdown(()=>startCatchLevel(0));
   };
   $('#btn-to-register').onclick=()=>show('screen-register');
@@ -467,6 +514,7 @@ function awardCatchKeys(){
   $('#lr-text').innerHTML=`Atrapaste <b>${state.totalCaught}</b> pelotitas correctas · Puntaje: <b>${state.score}</b>.<br>`+
     (earned>0 ? `¡Ganaste <b>${earned} llave${earned>1?'s':''}</b>! 🔑` : `No llegaste al puntaje para llaves esta vez.`);
   $('#level-result').classList.remove('hidden');
+  logSheet('Niveles');
 }
 
 /* ================= ARMAR CÉLULAS ================= */
@@ -728,6 +776,7 @@ const stripAcc=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 
 function enterMatch(){
   show('screen-match');
+  logSheet('Células');   // solo se llega acá con ambas células correctas
   rouStructIdx=shuffle(STRUCTURES.map((s,i)=>i));
   rouDone=Array(STRUCTURES.length).fill(false);
   rouSpin=0; rouCur=-1; rouAngle=0; rouSpinning=false;
@@ -840,6 +889,7 @@ function endRoulette(){
   doorsBtn.textContent = earned>0
     ? `🪙 ¡Bonus! Buscá las 3 mitocondrias (${correctas}/7 · ¡ganaste ${earned} llave${earned>1?'s':''}! Tenés ${state.keys})`
     : `🪙 ¡Bonus! Buscá las 3 mitocondrias (${correctas}/7 · tenés ${state.keys} llave${state.keys===1?'':'s'})`;
+  logSheet('Ruleta');
 }
 
 /* ================= BONUS: monedas ================= */
@@ -856,6 +906,7 @@ function bonusFn(t){ const s=STRUCTURES.find(x=>x.name===t.fnName); return s ? s
 let bonusDeck=[], bonusCounts={}, bonusOver=false;
 function enterBonus(){
   show('screen-bonus');
+  logSheet('Bonus');
   bonusDeck=shuffle(BONUS_TYPES.flatMap(t=>[t,t,t]));
   bonusCounts={}; BONUS_TYPES.forEach(t=>bonusCounts[t.id]=0);
   bonusOver=false;
@@ -919,6 +970,7 @@ const NUM_DOORS=15;
 function enterDoors(){
   show('screen-doors');
   state.doorsRound++;
+  logSheet('Puertas');
   if(!state.doorsOpened.length){
     state.doorsOpened=Array(NUM_DOORS).fill(false);
   }
@@ -1023,10 +1075,12 @@ function replayForKeys(){
 /* ================= FINAL + PDF ================= */
 function finishGame(){
   state.endTime=Date.now();
+  if(!state.codigo) state.codigo=genCodigo();
   const secs=Math.round((state.endTime-state.startTime)/1000);
   const mm=Math.floor(secs/60), ss=secs%60;
   const cellDesc=k=>`${state.cellErr[k]} error${state.cellErr[k]===1?'':'es'} → ${state.cellKey[k]?'1 llave 🔑':'sin llave'}`;
   const errS=n=>`${n} error${n===1?'':'es'}`;
+  $('#final-code').textContent=state.codigo;
   $('#final-summary').innerHTML=`
     <img src="${state.avatar.img}" alt="${state.avatar.label}">
     <h3>${state.nombre} ${state.apellido} — Sección ${state.seccion}</h3>
@@ -1042,6 +1096,7 @@ function finishGame(){
       <tr><td>Tiempo total</td><td>${mm}m ${ss}s</td></tr>
     </table>`;
   show('screen-final');
+  logSheet('¡ESCAPÓ!');
 }
 
 function generatePDF(){
@@ -1053,6 +1108,7 @@ function generatePDF(){
     ['Nombre', `${state.nombre} ${state.apellido}`],
     ['Sección', state.seccion],
     ['Fecha', new Date().toLocaleString('es')],
+    ['Código de finalización', state.codigo],
     ['Partidas jugadas', String(state.doorsRound)],
     ['Canastas', `${state.totalCaught} aciertos · ${errTxt(state.decoyErrors)} · puntaje ${state.score} · ${state.keysBy.catch} llave(s) ganada(s)`],
     ['Célula animal', cellRow('animal')],
@@ -1160,6 +1216,15 @@ function bindControls(){
   $('#btn-lr-continue').onclick=enterBuild;
   $('#btn-pdf').onclick=generatePDF;
   $('#btn-restart').onclick=()=>location.reload();
+
+  // si cierra la pestaña sin escapar, la planilla marca en qué etapa quedó
+  window.addEventListener('pagehide',()=>{
+    if(!SHEET_URL || !state.rid || state.codigo) return;
+    const p={rid:state.rid, nombre:state.nombre, apellido:state.apellido, seccion:state.seccion,
+      etapa:'Abandonó en '+(state.lastEtapa||'Registrado'), partidas:state.doorsRound,
+      puntaje:state.score, llaves:state.keysEarned, tiempo_seg:elapsedSeg(), termino:'No', codigo:''};
+    try{ navigator.sendBeacon(SHEET_URL, JSON.stringify(p)); }catch(e){}
+  });
   window.addEventListener('resize',()=>{ if($('#screen-build').classList.contains('active')) layoutDiagram(); });
 
   // música de fondo (arranca con el primer toque, se puede silenciar)
@@ -1189,5 +1254,5 @@ function initCover(){
   l.src='assets/logo.png';
 }
 window.addEventListener('DOMContentLoaded',()=>{
-  initCover(); initRegister(); bindControls();
+  initCover(); initRegister(); bindControls(); flushSheetQueue();
 });

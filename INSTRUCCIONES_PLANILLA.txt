@@ -1,0 +1,92 @@
+CÓMO ARMAR LA PLANILLA DE REGISTRO — ESCAPE CELULAR
+==================================================
+
+Vas a necesitar: una planilla de Google vacía + el código del archivo
+AppsScript_EscapeCelular.txt + el juego publicado.
+
+PASO 1 — Crear la planilla
+--------------------------
+1. Entrá a https://sheets.new → se abre una planilla nueva en blanco.
+2. Ponle nombre arriba a la izquierda, por ejemplo: "Escape Celular — registro".
+3. No hace falta crear las hojas ni los encabezados: el código los crea solos
+   (dos hojas: "partidas" y "resumen").
+
+PASO 2 — Pegar el código
+------------------------
+1. En la planilla, andá al menú Extensiones → Apps Script.
+2. Se abre una pantalla con un archivo "Código.gs". Borrá lo que dice.
+3. Copiá TODO el contenido de AppsScript_EscapeCelular.txt y pegalo ahí.
+4. Guardar (ícono de disquete o Ctrl+S).
+
+PASO 3 — Publicar el script (esto te da el enlace)
+-------------------------------------------------
+1. Arriba a la derecha: botón azul "Implementar" → "Nueva implementación".
+2. En "Selecciona el tipo" elegí "Aplicación web".
+3. Configuración:
+   - Descripción: "Escape Celular" (opcional)
+   - Ejecutar como: "Yo" (tu cuenta)
+   - Quién tiene acceso: "Cualquier persona"
+4. "Implementar" → te pide permiso una sola vez:
+   elegí tu cuenta → "Avanzado" → "Ir a ... (no seguro)" → "Permitir".
+   (Es tu propio script sobre tu propia planilla, es seguro.)
+5. Copiá la "URL de la aplicación web" (termina en /exec) y PASÁMELA:
+   yo la pongo dentro del juego y actualizo GitHub.
+
+PARA PROBAR QUE FUNCIONA
+------------------------
+- Pegá tu URL en el navegador: tiene que aparecer "Escape Celular: registro activo".
+- Jugá una partida: al registrarte se crea tu fila en "partidas" y se va
+  actualizando sola en cada etapa; en "resumen" aparece el estudiante.
+
+QUÉ REGISTRA
+------------
+Hoja "partidas" — UNA FILA POR CADA SESIÓN DE JUEGO (se actualiza sola):
+  Fecha | Nombre | Apellido | Sección | Etapa
+  (Registrado → Niveles → Células → Ruleta → Bonus → Puertas → ¡ESCAPÓ!;
+   si cierra la página queda "Abandonó en <etapa>")
+  | Partidas (veces que rejugó) | Puntaje | Llaves | Tiempo
+  | Terminó (Sí/No) | Código | ID
+
+Hoja "resumen" — UNA FILA POR ESTUDIANTE, se actualiza sola:
+  Nombre | Apellido | Sección | Sesiones | Escapó (veces) | Último código
+  | Mejor puntaje | Máx. llaves | Tiempo total | Última vez
+
+EL CÓDIGO DE FINALIZACIÓN (anti-copia)
+--------------------------------------
+Cuando un estudiante abre la puerta de la salida, el juego genera un código
+único (ej. CEL-X7K2M4) que:
+  - aparece en la pantalla final del juego,
+  - queda impreso en el certificado PDF,
+  - se registra en tu planilla junto a su nombre.
+Para verificar un certificado: buscá el código en la hoja "partidas"
+(Ctrl+F). Si no existe, o existe pero con otro nombre, el certificado
+es copiado — no jugó.
+
+CÓMO RECONOCE AL ESTUDIANTE AUNQUE ESCRIBA DISTINTO
+-------------------------------------------------
+En el resumen, el sistema junta como "mismo estudiante" los nombres que:
+  - difieren solo en mayúsculas/minúsculas   (EMMA = emma = Emma)
+  - tienen o no tilde                       (García = Garcia)
+  - tienen espacios dobles                  ("Emma  García" = "Emma García")
+  - difieren en UNA letra                   (Ema = Emma, Ana = Anna, Lujan = Luján)
+Siempre dentro de la misma sección (A no se mezcla con B).
+Cuando hay dos formas, el resumen muestra la más completa ("Emma" y no "Ema").
+
+OJO: si dos estudiantes DISTINTOS tienen nombres casi iguales en la misma
+sección (ej. "Juan Pérez" y "Juana Pérez"), el resumen puede juntarlos.
+Es raro; si te pasa, avisame y lo ajustamos.
+
+SI CAMBIAS EL CÓDIGO DESPUÉS
+----------------------------
+Los cambios NO se aplican solos: hay que republicar.
+  Implementar → Administrar implementaciones → ícono de lápiz →
+  Versión: "Nueva versión" → Implementar.
+La URL queda igual (no hace falta tocar el juego otra vez).
+
+NOTAS
+-----
+- La columna ID sirve para que cada sesión actualice su propia fila sin
+  duplicar. Podés ocultarla (clic derecho en la columna L → Ocultar).
+- Si el estudiante se queda sin internet en medio del juego, los registros
+  pendientes quedan guardados en su PC y se envían la próxima vez que
+  alguien abra el juego en esa máquina.
