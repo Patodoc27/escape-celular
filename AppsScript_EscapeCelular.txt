@@ -5,8 +5,9 @@
    Ver las instrucciones completas en INSTRUCCIONES_PLANILLA.txt
    ========================================================= */
 
-const HOJA_PARTIDAS = 'partidas';
-const HOJA_RESUMEN  = 'resumen';
+const HOJA_PARTIDAS    = 'partidas';
+const HOJA_COMPARATIVA = 'comparativa';
+const HOJA_RESUMEN     = 'resumen';
 
 /* Una fila por CADA VEZ que alguien juega: se crea al registrarse y se
    va actualizando en cada etapa (misma sesión = misma fila, por su ID). */
@@ -22,9 +23,14 @@ function doPost(e) {
     const d = JSON.parse(e.postData.contents);
     const libro = SpreadsheetApp.getActiveSpreadsheet();
     const partidas = hoja_(libro, HOJA_PARTIDAS, CAB_PARTIDAS);
+    hojaVacia_(libro, HOJA_COMPARATIVA);      // se crea antes que "resumen" para quedar como hoja 2
 
     upsertPartida_(partidas, d);
-    actualizarResumen_(libro, partidas);
+
+    const filas  = leerPartidas_(partidas);
+    const grupos = agrupar_(filas);
+    escribirResumen_(libro, grupos);
+    escribirComparativa_(libro.getSheetByName(HOJA_COMPARATIVA), filas, grupos);
     return salida_('ok');
   } finally {
     lock.releaseLock();
@@ -70,6 +76,44 @@ function buscarRid_(hoja, rid) {
   return 0;
 }
 
+function leerPartidas_(partidas) {
+  const ultima = partidas.getLastRow();
+  if (ultima < 2) return [];
+  return partidas.getRange(2, 1, ultima - 1, CAB_PARTIDAS.length).getValues();
+}
+
+/* ---------------- hojas ---------------- */
+function hoja_(libro, nombre, cabeceras) {
+  let h = libro.getSheetByName(nombre);
+  if (!h) {
+    // si es la planilla recién creada (una sola hoja vacía "Hoja 1"), la renombra:
+    // así "partidas" queda como hoja 1, como pidió la maestra
+    const todas = libro.getSheets();
+    if (nombre === HOJA_PARTIDAS && todas.length === 1 && todas[0].getLastRow() === 0) {
+      h = todas[0];
+      h.setName(nombre);
+    } else {
+      h = libro.insertSheet(nombre);
+    }
+  }
+  if (h.getLastRow() === 0) {
+    h.getRange(1, 1, 1, cabeceras.length).setValues([cabeceras]).setFontWeight('bold');
+    h.setFrozenRows(1);
+  }
+  return h;
+}
+
+function hojaVacia_(libro, nombre) {
+  let h = libro.getSheetByName(nombre);
+  if (!h) h = libro.insertSheet(nombre);
+  return h;
+}
+
+function salida_(txt) {
+  return ContentService.createTextOutput(txt).setMimeType(ContentService.MimeType.TEXT);
+}
+
+/* ---------------- tiempos ---------------- */
 function fmtTiempo_(seg) {
   seg = Math.round(seg);
   const m = Math.floor(seg / 60), s = seg % 60;
@@ -79,19 +123,9 @@ function minTot_(seg) {
   const m = Math.round(seg / 60);
   return m >= 60 ? Math.floor(m / 60) + 'h ' + (m % 60) + 'm' : m + 'm';
 }
-
-function hoja_(libro, nombre, cabeceras) {
-  let h = libro.getSheetByName(nombre);
-  if (!h) h = libro.insertSheet(nombre);
-  if (h.getLastRow() === 0) {
-    h.getRange(1, 1, 1, cabeceras.length).setValues([cabeceras]).setFontWeight('bold');
-    h.setFrozenRows(1);
-  }
-  return h;
-}
-
-function salida_(txt) {
-  return ContentService.createTextOutput(txt).setMimeType(ContentService.MimeType.TEXT);
+function segDeTexto_(txt) {
+  const m = /(\d+)m\s*(\d+)s/.exec(String(txt || ''));
+  return m ? (+m[1]) * 60 + (+m[2]) : 0;
 }
 
 /* ---------------- normalización de nombres ----------------
@@ -124,16 +158,8 @@ function mismoEstudiante_(x, y) {
   return dist_(x.clave, y.clave) <= 1;                     // una letra de diferencia: misma persona
 }
 
-/* ---------------- resumen por estudiante ---------------- */
-function actualizarResumen_(libro, partidas) {
-  const resumen = hoja_(libro, HOJA_RESUMEN, CAB_RESUMEN);
-  if (resumen.getLastRow() > 1)
-    resumen.getRange(2, 1, resumen.getLastRow() - 1, CAB_RESUMEN.length).clearContent();
-
-  const ultima = partidas.getLastRow();
-  if (ultima < 2) return;
-  const filas = partidas.getRange(2, 1, ultima - 1, CAB_PARTIDAS.length).getValues();
-
+/* ---------------- agrupar filas por estudiante ---------------- */
+function agrupar_(filas) {
   const grupos = [];
   for (const f of filas) {
     const n = norm_(f[1]), a = norm_(f[2]), sec = normSeccion_(f[3]);
@@ -164,6 +190,14 @@ function actualizarResumen_(libro, partidas) {
     const fecha = f[0] instanceof Date ? f[0] : new Date(f[0]);
     if (!g.ultima || fecha > g.ultima) { g.ultima = fecha; if (String(f[10])) g.ultCodigo = String(f[10]); }
   }
+  return grupos;
+}
+
+/* ---------------- resumen por estudiante ---------------- */
+function escribirResumen_(libro, grupos) {
+  const resumen = hoja_(libro, HOJA_RESUMEN, CAB_RESUMEN);
+  if (resumen.getLastRow() > 1)
+    resumen.getRange(2, 1, resumen.getLastRow() - 1, CAB_RESUMEN.length).clearContent();
 
   grupos.sort((a, b) =>
     a.secRaw.localeCompare(b.secRaw) ||
@@ -178,7 +212,82 @@ function actualizarResumen_(libro, partidas) {
   if (filasR.length) resumen.getRange(2, 1, filasR.length, CAB_RESUMEN.length).setValues(filasR);
 }
 
-function segDeTexto_(txt) {
-  const m = /(\d+)m\s*(\d+)s/.exec(String(txt || ''));
-  return m ? (+m[1]) * 60 + (+m[2]) : 0;
+/* ---------------- comparativa entre secciones ----------------
+   Una tabla "Métrica | Sección A | Sección B | ..." que se reescribe
+   entera con cada partida: sirve para comparar cursos de un vistazo. */
+function armarComparativa_(filas, grupos) {
+  // estadísticas por sección a partir de las sesiones
+  const secs = {};   // secNorm -> stats
+  const asegurar = sec => {
+    if (!secs[sec]) secs[sec] = { display: sec, partidas: 0, tiempoSeg: 0, punt: 0, maxPunt: 0,
+      llaves: 0, escapes: 0, tiempoEscSeg: 0, mejorEsc: null, sinSalir: {}, est: 0, term: 0 };
+    return secs[sec];
+  };
+  for (const f of filas) {
+    const sec = normSeccion_(f[3]);
+    if (!sec) continue;
+    const s = asegurar(sec);
+    if (String(f[3]).trim()) s.display = String(f[3]).trim();
+    s.partidas++;
+    const t = segDeTexto_(f[8]);
+    s.tiempoSeg += t;
+    const punt = Number(f[6]) || 0;
+    s.punt += punt;
+    s.maxPunt = Math.max(s.maxPunt, punt);
+    s.llaves += Number(f[7]) || 0;
+    if (String(f[9]) === 'Sí') {
+      s.escapes++;
+      s.tiempoEscSeg += t;
+      if (s.mejorEsc === null || t < s.mejorEsc) s.mejorEsc = t;
+    } else {
+      const et = String(f[4] || 'Registrado').replace(/^Abandonó en /, '');
+      s.sinSalir[et] = (s.sinSalir[et] || 0) + 1;
+    }
+  }
+  // estudiantes únicos y cuántos terminaron (desde los grupos ya difusos)
+  for (const g of grupos) {
+    const s = asegurar(g.sec);
+    s.est++;
+    if (g.escapes > 0) s.term++;
+  }
+
+  const orden = Object.keys(secs).sort();
+  const pct = (n, tot) => tot ? n + ' (' + Math.round(n * 100 / tot) + '%)' : String(n);
+  const prom1 = (n, tot) => tot ? String(Math.round(n * 10 / tot) / 10) : '—';
+  const moda = obj => {
+    let mejor = '', mx = 0;
+    for (const k in obj) if (obj[k] > mx) { mx = obj[k]; mejor = k; }
+    return mejor ? mejor + ' (' + mx + ')' : '—';
+  };
+  const col = fn => orden.map(sec => fn(secs[sec]));
+
+  const tabla = [
+    ['Métrica'].concat(orden.map(sec => 'Sección ' + secs[sec].display)),
+    ['Estudiantes que jugaron'].concat(col(s => s.est)),
+    ['Partidas jugadas'].concat(col(s => s.partidas)),
+    ['Partidas por estudiante'].concat(col(s => prom1(s.partidas, s.est))),
+    ['Terminaron el juego'].concat(col(s => pct(s.term, s.est))),
+    ['Participaron sin terminar'].concat(col(s => pct(s.est - s.term, s.est))),
+    ['Escapes totales'].concat(col(s => s.escapes)),
+    ['Tiempo promedio por partida'].concat(col(s => s.partidas ? fmtTiempo_(s.tiempoSeg / s.partidas) : '—')),
+    ['Tiempo promedio hasta escapar'].concat(col(s => s.escapes ? fmtTiempo_(s.tiempoEscSeg / s.escapes) : '—')),
+    ['Mejor tiempo hasta escapar'].concat(col(s => s.mejorEsc !== null ? fmtTiempo_(s.mejorEsc) : '—')),
+    ['Puntaje promedio por partida'].concat(col(s => prom1(s.punt, s.partidas))),
+    ['Mejor puntaje'].concat(col(s => s.maxPunt)),
+    ['Llaves promedio por partida'].concat(col(s => prom1(s.llaves, s.partidas))),
+    ['Etapa donde más se quedan sin terminar'].concat(col(s => moda(s.sinSalir))),
+    [],
+    ['Actualizado', new Date()]
+  ];
+  return { tabla, ncols: orden.length + 1 };
+}
+
+function escribirComparativa_(comp, filas, grupos) {
+  const { tabla, ncols } = armarComparativa_(filas, grupos);
+  comp.clearContents();
+  comp.getRange(1, 1, tabla.length, ncols).setValues(tabla);
+  comp.getRange(1, 1, 1, ncols).setFontWeight('bold');
+  comp.getRange(1, 1, tabla.length - 2, 1).setFontWeight('bold');
+  comp.setFrozenRows(1);
+  comp.autoResizeColumns(1, ncols);
 }

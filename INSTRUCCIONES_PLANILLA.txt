@@ -36,18 +36,27 @@ PARA PROBAR QUE FUNCIONA
 ------------------------
 - Pegá tu URL en el navegador: tiene que aparecer "Escape Celular: registro activo".
 - Jugá una partida: al registrarte se crea tu fila en "partidas" y se va
-  actualizando sola en cada etapa; en "resumen" aparece el estudiante.
+  actualizando sola en cada etapa; en "resumen" aparece el estudiante y
+  en "comparativa" se actualizan los números de cada sección.
 
 QUÉ REGISTRA
 ------------
-Hoja "partidas" — UNA FILA POR CADA SESIÓN DE JUEGO (se actualiza sola):
+Hoja 1 "partidas" — UNA FILA POR CADA SESIÓN DE JUEGO (se actualiza sola):
   Fecha | Nombre | Apellido | Sección | Etapa
   (Registrado → Niveles → Células → Ruleta → Bonus → Puertas → ¡ESCAPÓ!;
    si cierra la página queda "Abandonó en <etapa>")
   | Partidas (veces que rejugó) | Puntaje | Llaves | Tiempo
   | Terminó (Sí/No) | Código | ID
 
-Hoja "resumen" — UNA FILA POR ESTUDIANTE, se actualiza sola:
+Hoja 2 "comparativa" — TABLA SECCIÓN A vs SECCIÓN B, se reescribe sola:
+  Estudiantes que jugaron | Partidas jugadas | Partidas por estudiante
+  | Terminaron el juego (n y %) | Participaron sin terminar (n y %)
+  | Escapes totales | Tiempo promedio por partida | Tiempo promedio
+  hasta escapar | Mejor tiempo hasta escapar | Puntaje promedio
+  | Mejor puntaje | Llaves promedio | Etapa donde más se quedan
+  Sirve para comparar los dos cursos de un vistazo.
+
+Hoja 3 "resumen" — UNA FILA POR ESTUDIANTE, se actualiza sola:
   Nombre | Apellido | Sección | Sesiones | Escapó (veces) | Último código
   | Mejor puntaje | Máx. llaves | Tiempo total | Última vez
 
