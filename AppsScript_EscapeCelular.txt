@@ -284,8 +284,15 @@ function armarComparativa_(filas, grupos) {
 
 function escribirComparativa_(comp, filas, grupos) {
   const { tabla, ncols } = armarComparativa_(filas, grupos);
+  // setValues exige que TODAS las filas tengan el mismo ancho (la fila
+  // separadora va vacía): completamos con '' hasta ncols
+  const datos = tabla.map(r => {
+    const c = r.slice();
+    while (c.length < ncols) c.push('');
+    return c;
+  });
   comp.clearContents();
-  comp.getRange(1, 1, tabla.length, ncols).setValues(tabla);
+  comp.getRange(1, 1, datos.length, ncols).setValues(datos);
   comp.getRange(1, 1, 1, ncols).setFontWeight('bold');
   comp.getRange(1, 1, tabla.length - 2, 1).setFontWeight('bold');
   comp.setFrozenRows(1);

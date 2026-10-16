@@ -143,7 +143,7 @@ const state = {
 /* ---------- registro oculto en Google Sheets ----------
    La maestra pega su URL de Apps Script en SHEET_URL. El juego envía una
    fila por sesión que se actualiza en cada etapa; el estudiante no ve nada. */
-const SHEET_URL = '';   // la maestra pega aquí su URL de Apps Script (termina en /exec)
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyJV7bSj9vSEZ21lNnUl7FtFMokn1Qn15ZAKQELMrHUhZNJQDvT8QtDHbaF9jTu6Myo/exec';
 function genRid(){
   return 'EC-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);
 }
