@@ -158,7 +158,8 @@ function logSheet(etapa){
   state.lastEtapa=etapa;
   const p={rid:state.rid, nombre:state.nombre, apellido:state.apellido, seccion:state.seccion,
     etapa, partidas:state.doorsRound, puntaje:state.score, llaves:state.keysEarned,
-    tiempo_seg:elapsedSeg(), termino:state.codigo?'Sí':'No', codigo:state.codigo||''};
+    tiempo_seg:elapsedSeg(), termino:state.codigo?'Sí':'No', codigo:state.codigo||'',
+    avatar:state.avatar?state.avatar.id:''};
   try{
     fetch(SHEET_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(p)})
       .catch(()=>queueSheet(p));
@@ -183,6 +184,42 @@ function flushSheetQueue(){
         .catch(()=>queueSheet(p));
     }catch(e){ queueSheet(p); }
   });
+}
+
+/* ---------- podio: mejores escapistas ----------
+   El Apps Script devuelve (via ?top=N&cb=...) los N mejores tiempos de escape,
+   ordenados por tiempo ascendente y desempatados por puntaje. Se muestran los
+   6 mejores: avatar elegido, nombre, sección y tiempo. */
+const AV_ID_SET = new Set(AVATARS.map(a=>a.id));
+window.__podioCb = function(list){
+  const ol=$('#podio-list'), vacio=$('#podio-vacio');
+  if(!ol) return;
+  ol.innerHTML='';
+  const L=Array.isArray(list)?list:[];
+  const MED=['🥇','🥈','🥉'];
+  L.forEach((r,i)=>{
+    const li=document.createElement('li');
+    if(i<3) li.classList.add('p'+(i+1));
+    const av = AV_ID_SET.has(r.avatar)? r.avatar : 'nucleo';
+    const avObj = AVATARS.find(a=>a.id===av);
+    const seg = r.tiempo_seg||0;
+    const mm=Math.floor(seg/60), ss=seg%60;
+    li.innerHTML=`<span class="podio-rank">${i<3?MED[i]:(i+1)+'°'}</span>`
+      +`<img class="podio-av" src="${avObj?avObj.img:'assets/mascota.png'}" alt="">`
+      +`<span class="podio-who"><span class="podio-name"></span><br><span class="podio-sec"></span></span>`
+      +`<span class="podio-time">${mm}m ${ss<10?'0':''}${ss}s</span>`;
+    li.querySelector('.podio-name').textContent = `${r.nombre} ${r.apellido}`;
+    li.querySelector('.podio-sec').textContent = `1° ${r.seccion||''}`;
+    ol.appendChild(li);
+  });
+  if(vacio) vacio.classList.toggle('hidden', L.length>0);
+};
+function cargarPodio(){
+  if(!SHEET_URL) return;
+  const s=document.createElement('script');
+  s.src=SHEET_URL+'?top=6&cb=__podioCb';
+  s.onerror=()=>{ /* sin podio si falla la red */ };
+  document.head.appendChild(s);
 }
 
 const $  = s => document.querySelector(s);
@@ -1254,5 +1291,5 @@ function initCover(){
   l.src='assets/logo.png';
 }
 window.addEventListener('DOMContentLoaded',()=>{
-  initCover(); initRegister(); bindControls(); flushSheetQueue();
+  initCover(); initRegister(); bindControls(); flushSheetQueue(); cargarPodio();
 });

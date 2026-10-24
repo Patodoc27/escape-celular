@@ -11,7 +11,7 @@ const HOJA_RESUMEN     = 'resumen';
 
 /* Una fila por CADA VEZ que alguien juega: se crea al registrarse y se
    va actualizando en cada etapa (misma sesión = misma fila, por su ID). */
-const CAB_PARTIDAS = ['Fecha','Nombre','Apellido','Sección','Etapa','Partidas','Puntaje','Llaves','Tiempo','Terminó','Código','ID'];
+const CAB_PARTIDAS = ['Fecha','Nombre','Apellido','Sección','Etapa','Partidas','Puntaje','Llaves','Tiempo','Terminó','Código','ID','Avatar'];
 /* Una fila por ESTUDIANTE (aunque escriba su nombre distinto cada vez). */
 const CAB_RESUMEN  = ['Nombre','Apellido','Sección','Sesiones','Escapó','Último código','Mejor puntaje','Máx. llaves','Tiempo total','Última vez'];
 
@@ -25,6 +25,11 @@ function doPost(e) {
     const partidas = hoja_(libro, HOJA_PARTIDAS, CAB_PARTIDAS);
     hojaVacia_(libro, HOJA_COMPARATIVA);      // se crea antes que "resumen" para quedar como hoja 2
 
+    // la columna Avatar se agregó después: si la hoja existe de antes, completa el encabezado
+    if (partidas.getLastRow() > 0 && String(partidas.getRange(1, 13).getValue()) !== 'Avatar') {
+      partidas.getRange(1, 13).setValue('Avatar').setFontWeight('bold');
+    }
+
     upsertPartida_(partidas, d);
 
     const filas  = leerPartidas_(partidas);
@@ -37,9 +42,56 @@ function doPost(e) {
   }
 }
 
-// para probar que la URL funciona: abrirla en el navegador muestra este mensaje
-function doGet() {
+/* para probar que la URL funciona: abrirla en el navegador muestra este mensaje.
+   Con ?top=N devuelve el podio: los N mejores tiempos de escape en JSON
+   (o JSONP si se pasa &cb=nombreFuncion, que es lo que usa el juego). */
+function doGet(e) {
+  if (e && e.parameter && e.parameter.top) return podio_(e.parameter);
   return salida_('Escape Celular: registro activo');
+}
+
+/* ---------------- podio: mejores escapistas ----------------
+   Por cada estudiante que escapó alguna vez toma su MEJOR tiempo de escape;
+   ordena por tiempo ascendente y desempata por puntaje. */
+function podio_(params) {
+  const n = Math.min(Math.max(parseInt(params.top, 10) || 6, 1), 10);
+  const libro = SpreadsheetApp.getActiveSpreadsheet();
+  const partidas = libro.getSheetByName(HOJA_PARTIDAS);
+  const lista = [];
+  if (partidas) {
+    const filas = leerPartidas_(partidas);
+    const mejores = [];   // un registro por estudiante (su mejor escape)
+    for (const f of filas) {
+      if (String(f[9]) !== 'Sí') continue;                       // solo quienes escaparon
+      const sec = normSeccion_(f[3]);
+      const clave = norm_(f[1]) + ' ' + norm_(f[2]);
+      const t = segDeTexto_(f[8]);
+      const cand = { sec, clave, nombre: String(f[1]).trim(), apellido: String(f[2]).trim(),
+                     seccion: String(f[3]).trim(), avatar: String(f[12] || ''),
+                     tiempo_seg: t, puntaje: Number(f[6]) || 0 };
+      let g = null;
+      for (const m of mejores) {
+        if (mismoEstudiante_({ sec: m.sec, clave: m.clave }, cand)) { g = m; break; }
+      }
+      if (!g) { mejores.push(cand); continue; }
+      // conserva el nombre más completo y el mejor tiempo
+      if (clave.length > g.clave.length) { g.clave = clave; g.nombre = cand.nombre; g.apellido = cand.apellido; }
+      if (!g.avatar && cand.avatar) g.avatar = cand.avatar;
+      if (t < g.tiempo_seg) { g.tiempo_seg = t; g.puntaje = cand.puntaje; g.avatar = cand.avatar || g.avatar; }
+    }
+    mejores.sort((a, b) => (a.tiempo_seg - b.tiempo_seg) || (b.puntaje - a.puntaje));
+    for (const m of mejores.slice(0, n)) {
+      lista.push({ nombre: m.nombre, apellido: m.apellido, seccion: m.seccion,
+                   avatar: m.avatar, tiempo_seg: m.tiempo_seg, puntaje: m.puntaje });
+    }
+  }
+  const json = JSON.stringify(lista);
+  const cb = params.cb;
+  if (cb && /^[A-Za-z_$][\w$.]*$/.test(cb)) {
+    return ContentService.createTextOutput(cb + '(' + json + ');')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
 }
 
 /* ---------------- partidas ----------------
@@ -52,7 +104,7 @@ function upsertPartida_(hoja, d) {
     String(d.nombre || ''), String(d.apellido || ''), String(d.seccion || ''),
     String(d.etapa || ''), Number(d.partidas) || 0, Number(d.puntaje) || 0,
     Number(d.llaves) || 0, fmtTiempo_(Number(d.tiempo_seg) || 0),
-    String(d.termino || 'No'), String(d.codigo || ''), rid
+    String(d.termino || 'No'), String(d.codigo || ''), rid, String(d.avatar || '')
   ];
   if (rid) {
     const filaExistente = buscarRid_(hoja, rid);
@@ -71,7 +123,8 @@ function buscarRid_(hoja, rid) {
   const ultima = hoja.getLastRow();
   if (ultima < 2) return 0;
   const desde = Math.max(2, ultima - 499);    // revisa las últimas 500 filas
-  const ids = hoja.getRange(desde, CAB_PARTIDAS.length, ultima - desde + 1, 1).getValues();
+  const colId = CAB_PARTIDAS.indexOf('ID') + 1;
+  const ids = hoja.getRange(desde, colId, ultima - desde + 1, 1).getValues();
   for (let i = ids.length - 1; i >= 0; i--) if (String(ids[i][0]) === rid) return desde + i;
   return 0;
 }
