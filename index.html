@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="assets/logo.png">
-<link rel="stylesheet" href="style.css?v=24">
+<link rel="stylesheet" href="style.css?v=25">
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 </head>
 <body>
@@ -45,41 +45,40 @@
 
   <!-- ============ REGISTRO ============ -->
   <section id="screen-register" class="screen">
-    <div class="card card-hero">
-      <h1 class="game-title">ESCAPE CELULAR</h1>
-      <p class="subtitle">Completá tus datos para empezar</p>
+    <div class="register-wrap">
+      <div class="card card-hero">
+        <h1 class="game-title">ESCAPE CELULAR</h1>
+        <p class="subtitle">Completá tus datos para empezar</p>
 
-      <div class="register-grid">
-        <div>
-          <div class="form-row">
-            <label>Nombre</label>
-            <input id="inp-nombre" type="text" placeholder="Tu nombre" autocomplete="off">
-          </div>
-          <div class="form-row">
-            <label>Apellido</label>
-            <input id="inp-apellido" type="text" placeholder="Tu apellido" autocomplete="off">
-          </div>
-          <div class="form-row">
-            <label>Sección</label>
-            <div class="section-picker">
-              <button type="button" class="sec-btn" data-sec="A">Sección A</button>
-              <button type="button" class="sec-btn" data-sec="B">Sección B</button>
-            </div>
-          </div>
-          <div class="form-row">
-            <label>Elige tu avatar</label>
-            <div id="avatar-grid" class="avatar-grid"></div>
+        <div class="form-row">
+          <label>Nombre</label>
+          <input id="inp-nombre" type="text" placeholder="Tu nombre" autocomplete="off">
+        </div>
+        <div class="form-row">
+          <label>Apellido</label>
+          <input id="inp-apellido" type="text" placeholder="Tu apellido" autocomplete="off">
+        </div>
+        <div class="form-row">
+          <label>Sección</label>
+          <div class="section-picker">
+            <button type="button" class="sec-btn" data-sec="A">Sección A</button>
+            <button type="button" class="sec-btn" data-sec="B">Sección B</button>
           </div>
         </div>
-        <div class="podio-card">
-          <h3 class="podio-title">🏆 Mejores escapistas</h3>
-          <ol id="podio-list" class="podio-list"></ol>
-          <p id="podio-vacio" class="podio-vacio hidden">¡Todavía nadie escapó!<br>El primer puesto puede ser tuyo 🎮</p>
+        <div class="form-row">
+          <label>Elige tu avatar</label>
+          <div id="avatar-grid" class="avatar-grid"></div>
         </div>
+
+        <p id="register-error" class="error-text"></p>
+        <button id="btn-start" class="btn btn-glow big">🎮 ¡A JUGAR!</button>
       </div>
 
-      <p id="register-error" class="error-text"></p>
-      <button id="btn-start" class="btn btn-glow big">🎮 ¡A JUGAR!</button>
+      <div class="podio-card podio-side">
+        <h3 class="podio-title">🏆 Mejores escapistas</h3>
+        <ol id="podio-list" class="podio-list"></ol>
+        <p id="podio-vacio" class="podio-vacio hidden">¡Todavía nadie escapó!<br>El primer puesto puede ser tuyo 🎮</p>
+      </div>
     </div>
   </section>
 
@@ -226,6 +225,6 @@
   <div id="print-report" class="print-only"></div>
 
 </div>
-<script src="game.js?v=24"></script>
+<script src="game.js?v=25"></script>
 </body>
 </html>
