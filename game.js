@@ -208,7 +208,7 @@ window.__podioCb = function(list){
       +`<img class="podio-av" src="${avObj?avObj.img:'assets/mascota.png'}" alt="">`
       +`<span class="podio-who"><span class="podio-name"></span><br><span class="podio-sec"></span></span>`
       +`<span class="podio-time">${mm}m ${ss<10?'0':''}${ss}s</span>`;
-    const cap = s => String(s).replace(/\b\w/g, c=>c.toUpperCase());
+    const cap = s => String(s).toLowerCase().replace(/(^|\s)(.)/g,(m,p,c)=>p+c.toUpperCase());
     li.querySelector('.podio-name').textContent = `${cap(r.nombre)} ${cap(r.apellido)}`;
     li.querySelector('.podio-sec').textContent = `1° ${r.seccion||''}`;
     ol.appendChild(li);

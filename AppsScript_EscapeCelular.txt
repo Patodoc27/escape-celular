@@ -74,24 +74,40 @@ function podio_(params) {
         if (mismoEstudiante_({ sec: m.sec, clave: m.clave }, cand)) { g = m; break; }
       }
       if (!g) { mejores.push(cand); continue; }
-      // conserva el nombre más completo y el mejor tiempo
-      if (clave.length > g.clave.length) { g.clave = clave; g.nombre = cand.nombre; g.apellido = cand.apellido; }
+      // conserva la forma con acentos si existe ('Román' gana a 'roman'); si no, la más larga
+      const accG = acentos_(g.nombre + ' ' + g.apellido);
+      const accC = acentos_(cand.nombre + ' ' + cand.apellido);
+      if (accC > accG || (accC === accG && clave.length > g.clave.length)) {
+        g.clave = clave; g.nombre = cand.nombre; g.apellido = cand.apellido;
+      }
       if (!g.avatar && cand.avatar) g.avatar = cand.avatar;
       if (t < g.tiempo_seg) { g.tiempo_seg = t; g.puntaje = cand.puntaje; g.avatar = cand.avatar || g.avatar; }
     }
     mejores.sort((a, b) => (a.tiempo_seg - b.tiempo_seg) || (b.puntaje - a.puntaje));
     for (const m of mejores.slice(0, n)) {
-      lista.push({ nombre: m.nombre, apellido: m.apellido, seccion: m.seccion,
+      lista.push({ nombre: bonito_(m.nombre), apellido: bonito_(m.apellido), seccion: m.seccion,
                    avatar: m.avatar, tiempo_seg: m.tiempo_seg, puntaje: m.puntaje });
     }
   }
   const json = JSON.stringify(lista);
   const cb = params.cb;
+  void 0;
   if (cb && /^[A-Za-z_$][\w$.]*$/.test(cb)) {
     return ContentService.createTextOutput(cb + '(' + json + ');')
       .setMimeType(ContentService.MimeType.JAVASCRIPT);
   }
   return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
+}
+
+/* nombre para mostrar: 'MAITENA'/'maitena' -> 'Maitena' (cada palabra);
+   los acentos quedan como los escribió el estudiante */
+function bonito_(s) {
+  return String(s || '').trim().toLowerCase()
+    .replace(/(^|\s)(\S)/g, function (m, p, c) { return p + c.toUpperCase(); });
+}
+function acentos_(s) {
+  const m = String(s || '').match(/[áéíóúÁÉÍÓÚñÑüÜ]/g);
+  return m ? m.length : 0;
 }
 
 /* ---------------- partidas ----------------
