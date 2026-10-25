@@ -42,8 +42,8 @@ body{
 .register-wrap{ display:flex; gap:24px; align-items:stretch; justify-content:center; width:100%; max-width:1180px; margin:auto; }
 .register-wrap .card-hero{ flex:1; min-width:0; margin:0; }
 .podio-side{ flex:0 0 360px; display:flex; flex-direction:column; }
-.podio-side .podio-list{ flex:1; justify-content:center; display:flex; flex-direction:column; }
-.podio-side .podio-vacio{ margin:auto; }
+.podio-side .podio-list{ flex:1; }
+.podio-side .podio-vacio{ margin:auto 0; }
 @media (max-width:880px){ .register-wrap{ flex-direction:column; max-width:700px; } .podio-side{ flex:1; } }
 h1.game-title{ font-size:2.6rem; text-align:center; color:var(--purple-dark); letter-spacing:1px; }
 h2{ color:var(--purple-dark); margin-bottom:4px; }
@@ -77,17 +77,17 @@ h3{ color:var(--ink); }
 .podio-title{ margin:0 0 8px; text-align:center; color:#8a5a00; font-size:1.15rem; }
 .podio-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; }
 .podio-list li{ display:flex; align-items:center; gap:9px; background:rgba(255,255,255,.75);
-  border-radius:14px; padding:5px 10px; font-size:.9rem; }
-.podio-list li.p1{ box-shadow:0 0 0 2px #e6b800 inset; }
-.podio-list li.p2{ box-shadow:0 0 0 2px #b7b7b7 inset; }
-.podio-list li.p3{ box-shadow:0 0 0 2px #cd7f32 inset; }
+  border:2px solid #cd7f32; border-radius:14px; padding:5px 10px; font-size:.9rem;
+  box-shadow:0 2px 6px rgba(205,127,50,.25); }
+.podio-list li.p1{ border-color:#e6b800; box-shadow:0 2px 6px rgba(230,184,0,.35); }
+.podio-list li.p2{ border-color:#b7b7b7; box-shadow:0 2px 6px rgba(160,160,160,.3); }
+/* medallones: 1° oro, 2° plata, 3°-6° bronce */
 .podio-rank{ width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-  font-weight:900; font-size:.95rem; color:#7a5f9e; background:#efe6ff; border:2px solid #d8c8ff;
-  flex-shrink:0; }
+  font-weight:900; font-size:.95rem; color:#5c340f; flex-shrink:0;
+  background:radial-gradient(circle at 35% 30%,#f2b98a,#c97e3e); border:2px solid #a2622a; }
 .p1 .podio-rank{ background:radial-gradient(circle at 35% 30%,#ffe887,#f5b400); border-color:#d4a017; color:#7a5400;
   box-shadow:0 0 8px rgba(255,190,30,.55); }
 .p2 .podio-rank{ background:radial-gradient(circle at 35% 30%,#ffffff,#c9cfd9); border-color:#9aa2b0; color:#5a6272; }
-.p3 .podio-rank{ background:radial-gradient(circle at 35% 30%,#f2b98a,#c97e3e); border-color:#a2622a; color:#5c340f; }
 .podio-av{ width:38px; height:38px; border-radius:50%; object-fit:cover; border:2px solid var(--purple); flex-shrink:0; }
 .podio-who{ flex:1; min-width:0; }
 .podio-name{ font-weight:800; color:var(--purple-dark); line-height:1.1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
