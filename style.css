@@ -81,7 +81,13 @@ h3{ color:var(--ink); }
 .podio-list li.p1{ box-shadow:0 0 0 2px #e6b800 inset; }
 .podio-list li.p2{ box-shadow:0 0 0 2px #b7b7b7 inset; }
 .podio-list li.p3{ box-shadow:0 0 0 2px #cd7f32 inset; }
-.podio-rank{ width:26px; text-align:center; font-weight:800; color:#8a5a00; flex-shrink:0; }
+.podio-rank{ width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-weight:900; font-size:.95rem; color:#7a5f9e; background:#efe6ff; border:2px solid #d8c8ff;
+  flex-shrink:0; }
+.p1 .podio-rank{ background:radial-gradient(circle at 35% 30%,#ffe887,#f5b400); border-color:#d4a017; color:#7a5400;
+  box-shadow:0 0 8px rgba(255,190,30,.55); }
+.p2 .podio-rank{ background:radial-gradient(circle at 35% 30%,#ffffff,#c9cfd9); border-color:#9aa2b0; color:#5a6272; }
+.p3 .podio-rank{ background:radial-gradient(circle at 35% 30%,#f2b98a,#c97e3e); border-color:#a2622a; color:#5c340f; }
 .podio-av{ width:38px; height:38px; border-radius:50%; object-fit:cover; border:2px solid var(--purple); flex-shrink:0; }
 .podio-who{ flex:1; min-width:0; }
 .podio-name{ font-weight:800; color:var(--purple-dark); line-height:1.1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }

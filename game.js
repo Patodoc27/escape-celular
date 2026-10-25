@@ -196,7 +196,6 @@ window.__podioCb = function(list){
   if(!ol) return;
   ol.innerHTML='';
   const L=Array.isArray(list)?list:[];
-  const MED=['🥇','🥈','🥉'];
   L.forEach((r,i)=>{
     const li=document.createElement('li');
     if(i<3) li.classList.add('p'+(i+1));
@@ -204,7 +203,7 @@ window.__podioCb = function(list){
     const avObj = AVATARS.find(a=>a.id===av);
     const seg = r.tiempo_seg||0;
     const mm=Math.floor(seg/60), ss=seg%60;
-    li.innerHTML=`<span class="podio-rank">${i<3?MED[i]:(i+1)+'°'}</span>`
+    li.innerHTML=`<span class="podio-rank">${i+1}°</span>`
       +`<img class="podio-av" src="${avObj?avObj.img:'assets/mascota.png'}" alt="">`
       +`<span class="podio-who"><span class="podio-name"></span><br><span class="podio-sec"></span></span>`
       +`<span class="podio-time">${mm}m ${ss<10?'0':''}${ss}s</span>`;
