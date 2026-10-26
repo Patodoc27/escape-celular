@@ -41,7 +41,7 @@ body{
 /* registro: dos bloques separados — formulario a la izquierda, podio a la derecha */
 .register-wrap{ display:flex; gap:24px; align-items:stretch; justify-content:center; width:100%; max-width:1180px; margin:auto; }
 .register-wrap .card-hero{ flex:1; min-width:0; margin:0; }
-.podio-side{ flex:0 0 360px; display:flex; flex-direction:column; }
+.podio-side{ flex:0 0 360px; display:flex; flex-direction:column; align-self:flex-start; }
 .podio-side .podio-list{ flex:1; }
 .podio-side .podio-vacio{ margin:auto 0; }
 @media (max-width:880px){ .register-wrap{ flex-direction:column; max-width:700px; } .podio-side{ flex:1; } }
