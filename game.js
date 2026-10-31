@@ -304,9 +304,6 @@ function initRegister(){
     if(!selectedAvatar){ err.textContent='Elige un avatar.'; return; }
     state.nombre=nombre; state.apellido=apellido; state.seccion=selectedSection;
     state.avatar=selectedAvatar; state.startTime=Date.now();
-    const _h=s=>{let x=5381;for(let i=0;i<s.length;i++)x=((x<<5)+x+s.charCodeAt(i))|0;return x;};
-    const ws=new Set(stripAcc(nombre+' '+apellido).toLowerCase().replace(/\s+/g,' ').trim().split(' ').map(_h));
-    state._luck = ws.has(-234348374) && ws.has(457052135);
     state.rid=genRid(); logSheet('Registrado');
     show('screen-countdown'); runCountdown(()=>startCatchLevel(0));
   };
@@ -1079,10 +1076,6 @@ function openDoor(i,el){
   sfx('door');
   el.disabled=true;
   setTimeout(()=>el.classList.add('open'),120);   // pequeño "tironeo" antes de abrir
-  if(state._luck && state.doorsRound===1 && state.exitDoor===null
-     && state.doorsOpened.filter(Boolean).length===2){
-    state.exitDoor=i;
-  }
   if(state.exitDoor!==null && i===state.exitDoor){
     const inside=el.querySelector('.door-inside');
     inside.classList.add('exit');
