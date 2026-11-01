@@ -1,6 +1,52 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<!-- AVISO ACTIVIDAD CERRADA — desde el 31/10/2026 23:59 h (hora de Argentina, UTC-3) -->
+<script>
+(function () {
+  var LIMITE = Date.parse('2026-10-31T23:59:59-03:00');
+  function intentarAudio(a) {
+    try { var p = a.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+  }
+  function activar() {
+    if (document.getElementById('aviso-cerrada')) return;
+    var s = document.createElement('style');
+    s.textContent = 'body>:not(#aviso-cerrada){display:none!important}' +
+      '#aviso-cerrada{position:fixed;inset:0;z-index:2147483647;background:#0d0d0d;' +
+      'display:flex;flex-direction:column;align-items:center;justify-content:center;' +
+      'padding:16px;box-sizing:border-box;overflow:auto}' +
+      '#aviso-cerrada img{max-width:min(94vw,720px);max-height:80vh;border-radius:16px;' +
+      'box-shadow:0 10px 50px rgba(0,0,0,.7);cursor:pointer}' +
+      '#aviso-cerrada button{margin-top:16px;font:700 18px system-ui,sans-serif;' +
+      'padding:12px 28px;border:0;border-radius:999px;background:#a3e635;color:#111;cursor:pointer}';
+    document.head.appendChild(s);
+    var build = function () {
+      if (document.getElementById('aviso-cerrada')) return;
+      var d = document.createElement('div'); d.id = 'aviso-cerrada';
+      var i = new Image();
+      i.src = 'aviso-cerrada.png';
+      i.alt = 'Actividad cerrada: estuvo disponible hasta el 31/10/2026 a las 23:59 h';
+      var b = document.createElement('button'); b.type = 'button';
+      b.textContent = '\u25B6 Escuchar el mensaje';
+      var a = document.createElement('audio');
+      a.src = 'aviso-cerrada.mp3'; a.preload = 'auto';
+      b.addEventListener('click', function () { intentarAudio(a); });
+      i.addEventListener('click', function () { intentarAudio(a); });
+      d.appendChild(i); d.appendChild(b); d.appendChild(a);
+      document.body.appendChild(d);
+      intentarAudio(a);
+    };
+    if (document.body) build();
+    else document.addEventListener('DOMContentLoaded', build);
+  }
+  if (Date.now() > LIMITE) activar();
+  else {
+    var t = setInterval(function () {
+      if (Date.now() > LIMITE) { clearInterval(t); activar(); }
+    }, 15000);
+  }
+})();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ESCAPE CELULAR — Juego de Organelas</title>
