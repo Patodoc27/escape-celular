@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<!-- AVISO ACTIVIDAD CERRADA — desde el 31/10/2026 23:59 h (hora de Argentina, UTC-3) -->
+<!-- AVISO ACTIVIDAD CERRADA — desde el 03/11/2026 23:59 h (hora de Argentina, UTC-3) -->
 <script>
 (function () {
-  var LIMITE = Date.parse('2026-10-31T23:59:59-03:00');
+  var LIMITE = Date.parse('2026-11-03T23:59:59-03:00');
   function intentarAudio(a) {
     try { var p = a.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
   }
@@ -25,7 +25,7 @@
       var d = document.createElement('div'); d.id = 'aviso-cerrada';
       var i = new Image();
       i.src = 'aviso-cerrada.png';
-      i.alt = 'Actividad cerrada: estuvo disponible hasta el 31/10/2026 a las 23:59 h';
+      i.alt = 'Actividad cerrada: estuvo disponible hasta el 03/11/2026 a las 23:59 h';
       var b = document.createElement('button'); b.type = 'button';
       b.textContent = '\u25B6 Escuchar el mensaje';
       var a = document.createElement('audio');
